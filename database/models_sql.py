@@ -52,6 +52,7 @@ CREATE_PREDICTIONS_SQL = """
             feature_importance TEXT NOT NULL,
             predicton_horizon_minutes INTEGER DEFAULT 0,
             model_version TEXT NOT NULL,
+            timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (device_id) REFERENCES devices (id) ON DELETE CASCADE
         );
 """

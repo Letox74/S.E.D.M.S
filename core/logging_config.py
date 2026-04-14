@@ -4,6 +4,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 LOG_DIR = Path().cwd() / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def get_file_handler(filename: str | Path, formatter: logging.Formatter) -> RotatingFileHandler:
