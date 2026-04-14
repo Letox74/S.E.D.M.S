@@ -1,6 +1,5 @@
 import logging
 from pathlib import Path
-from typing import Any
 
 import aiosqlite
 
@@ -42,15 +41,6 @@ class DatabaseManager:
             await self._connection.close()
             app_logger.info("Database connection closed")
 
-    async def _execute_query(self, query: str, params: tuple = ()) -> Any:
-        """Internal helper to execute a query (no return)"""
-
-        try:
-            return await self._connection.execute(query, params)
-
-        except Exception as e:
-            error_logger.error(f"Query execution failed: {query} | Error: {e}")
-            raise
 
     async def fetch_all(self, query: str, params: tuple = ()):
         """Returns all rows for a query"""
