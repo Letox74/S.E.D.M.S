@@ -8,21 +8,17 @@ LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def get_file_handler(filename: str | Path, formatter: logging.Formatter) -> RotatingFileHandler:
-    """Helper function that return the file hanlder needed for the loggers"""
-
-    handler = RotatingFileHandler(filename, maxBytes=5 * 1024 * 1024, backupCount=3)
+    handler = RotatingFileHandler(filename, maxBytes=5 * 1024 * 1024, backupCount=3)  # max 5MB
     handler.setFormatter(formatter)
     return handler
 
 
 def get_formatter_and_console_handler():
-    """Helper function that return the formatter and the console handler needed for the loggers"""
-
-    log_format = "[%(name)s] - %(levelname)s - %(asctime)s - %(message)s"
+    log_format = "[%(name)s] - %(levelname)s - %(asctime)s: %(message)s"  # example: [app] - INFO - 2026-04-15: App started
     date_format = "%Y-%m-%d %H:%M:%S"
     formatter = logging.Formatter(log_format, date_format)
 
-    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler = logging.StreamHandler(sys.stdout)  # add console handler to write to the console
     console_handler.setFormatter(formatter)
 
     return console_handler, formatter
@@ -33,8 +29,6 @@ def setup_single_logger(
         filename: Path | str,
         level: logging.INFO | logging.ERROR = logging.INFO
 ) -> None:
-    """Helper function that creates the logger"""
-
     console_handler, formatter = get_formatter_and_console_handler()
 
     logger.setLevel(level)
@@ -44,8 +38,6 @@ def setup_single_logger(
 
 
 def setup_logging():
-    """Main setup function to setup all loggers"""
-
     # Root Logger
     root_logger = logging.getLogger("app")
     setup_single_logger(root_logger, LOG_DIR / "app.log")

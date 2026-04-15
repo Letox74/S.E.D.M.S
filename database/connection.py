@@ -16,8 +16,6 @@ class DatabaseManager:
         self._connection = None
 
     async def connect(self) -> None:
-        """Connects to the database and configures SQLite settings"""
-
         try:
             self._connection = await aiosqlite.connect(self.db_path)
             self._connection.row_factory = aiosqlite.Row # enable Row factory to access columns by name
@@ -35,27 +33,21 @@ class DatabaseManager:
 
 
     async def disconnect(self) -> None:
-        """Closes the database connection"""
-
         if self._connection:
-            await self._connection.close()
+            await self._connection.close() # close connection
             app_logger.info("Database connection closed")
 
 
     async def fetch_all(self, query: str, params: tuple = ()):
-        """Returns all rows for a query"""
-
         try:
             async with self._connection.execute(query, params) as cursor:
-                return await cursor.fetchall()
+                return await cursor.fetchall() #
 
         except Exception as e:
             error_logger.error(f"Fetch all failed: {e}")
             return []
 
     async def fetch_one(self, query: str, params: tuple = ()):
-        """Return a single row for a query"""
-
         try:
             async with self._connection.execute(query, params) as cursor:
                 return await cursor.fetchone()
@@ -65,8 +57,7 @@ class DatabaseManager:
             return None
 
     async def execute_transaction(self, query: str, params: tuple = ()):
-        """Executes a query and commits it. Rollback on failure"""
-
+        # this function is used or INSERT/UPDATE or DELETE
         try:
             await self._connection.execute(query, params)
             await self._connection.commit()
@@ -77,12 +68,10 @@ class DatabaseManager:
             raise
 
     async def initialize_schema(self):
-        """Initialize tables using the Scripts found in /database/model_sql.py"""
-
         try:
             for schema in SCHEMAS:
                 await self._connection.executescript(schema)
-            await self._connection.commit()
+            await self._connection.commit() # to create the tables (schema found here: database/models_sql.py)
 
         except Exception as e:
             error_logger.error(f"Schema initialization failed: {e}")

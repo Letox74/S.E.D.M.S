@@ -1,9 +1,17 @@
-from dotenv import load_dotenv
-from pathlib import Path
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 ENV_PATH = Path().cwd() / ".env"
 load_dotenv(dotenv_path=ENV_PATH)
 
-DB_PATH = os.getenv("DB_PATH")
-API_KEY = os.getenv("API_KEY")
+# path to the db
+DB_PATH: str = os.getenv("DB_PATH")
+
+# api key
+API_KEY: str = os.getenv("API_KEY")
+
+# rate limits
+DEFAULT_RATE_LIMIT: str = "35/minute"
+ACTIVATE_RATE_LIMITS: bool = True
