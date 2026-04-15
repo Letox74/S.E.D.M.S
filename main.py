@@ -1,5 +1,12 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
+from slowapi.errors import RateLimitExceeded
+from slowapi.extension import _rate_limit_exceeded_handler
+from slowapi.middleware import SlowAPIMiddleware
 
+from api.dependencies import api_key_auth
+from api.limiter import limiter
+from api.middleware.audit import AuditMiddleware
+from core.config import ACTIVATE_RATE_LIMITS
 from core.lifespan import lifespan
 from core.logging_config import setup_logging
 
@@ -9,5 +16,16 @@ app = FastAPI(
     title="S.E.D.M.S",
     summary="Smart Energy & Device Management System",
     version="0.1.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    dependencies=[Depends(api_key_auth)]
 )
+
+if ACTIVATE_RATE_LIMITS:
+    # Add a limiter and an error handler
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+    # Register the middleware so that the default limits apply
+    app.add_middleware(SlowAPIMiddleware)
+
+app.add_middleware(AuditMiddleware)  # add custom middleware
