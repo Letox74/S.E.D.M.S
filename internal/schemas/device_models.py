@@ -52,7 +52,7 @@ class DeviceBase(BaseModel):
 
 class DeviceCreate(DeviceBase):
     is_active: Optional[bool] = Field(
-        default=None,
+        default=True,
         description="If the device or sensor is currently active. If set to None the default is True"
     )
 
@@ -75,6 +75,14 @@ class DeviceUpdate(DeviceBase):
     firmware_version: Optional[str] = Field(
         default=None,
         description="The firmware version of the device or sensor",
+    )
+    description: Optional[str] = Field(
+        default=None,
+        description="The descripton of the device or sensor"
+    )
+    is_active: Optional[bool] = Field(
+        default=None,
+        description="If the device or sensor is currently active"
     )
 
 
