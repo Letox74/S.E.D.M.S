@@ -5,6 +5,7 @@ CREATE_DEVICES_SQL = """
             type TEXT NOT NULL,
             firmware_version TEXT NOT NULL,
             description TEXT,
+            status TEXT,
             is_active BOOLEAN NOT NULL DEFAULT 1,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         );

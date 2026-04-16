@@ -1,7 +1,7 @@
-import uuid
 from datetime import datetime
 from enum import Enum
 from typing import Optional
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -22,6 +22,13 @@ class DeviceTypes(str, Enum):
     SMOKE_DETECTOR = "smoke_detector"  # senses smoke or combustion particles to provide an early warning of potential fire hazards
     PH_SENSOR = "ph_sensor"  # measures the acidity or alkalinty of a liquid, essential for water treatment and chemical precesses
     VALVE_ACTUATOR = "valve_actuator"  # a mechanical device for opening and closing a valve, allowing remote control of fluid flow
+
+
+class DeviceStaus(str, Enum):
+    ONLINE = "online"
+    OFFLINE = "offline"
+    MAINTENANCE = "maintenance"
+    ERROR = "error"
 
 
 class DeviceBase(BaseModel):
@@ -49,11 +56,17 @@ class DeviceBase(BaseModel):
         description="The descripton of the device or sensor. The description is optional"
     )
 
+    status: Optional[DeviceStaus] = Field(
+        default=None,
+        description="The current status of the device or sensor",
+        examples=["online", "maintenance"]
+    )
+
 
 class DeviceCreate(DeviceBase):
     is_active: Optional[bool] = Field(
         default=True,
-        description="If the device or sensor is currently active. If set to None the default is True"
+        description="If the device or sensor is currently active. Default is True"
     )
 
 
@@ -87,7 +100,7 @@ class DeviceUpdate(DeviceBase):
 
 
 class DeviceRead(DeviceBase):
-    id: uuid.UUID | str = Field(
+    id: UUID | str = Field(
         default=...,
         description="The generated uuid id for the device or sensor",
         min_length=36,
@@ -95,7 +108,7 @@ class DeviceRead(DeviceBase):
     )
 
     is_active: bool = Field(
-        default=...,
+        default=True,
         description="If the device or sensor is currently active"
     )
 
