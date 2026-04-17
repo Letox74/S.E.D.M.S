@@ -3,11 +3,13 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-ENV_PATH = Path().cwd() / ".env"
+ENV_PATH = Path(__file__).parent.parent.resolve() / ".env"
+ENV_PATH.mkdir(parents=True, exist_ok=True)
+
 load_dotenv(dotenv_path=ENV_PATH)
 
 # path to the db
-DB_PATH: str = os.getenv("DB_PATH")
+DB_PATH: Path = Path(__file__).parent.parent.resolve() / "database" / "storage.db"
 
 # api key
 API_KEY: str = os.getenv("API_KEY")

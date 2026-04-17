@@ -3,7 +3,7 @@ import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-LOG_DIR = Path().cwd() / "logs"
+LOG_DIR = Path(__file__).parent.parent.resolve() / "logs"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 
