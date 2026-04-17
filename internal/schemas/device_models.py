@@ -23,12 +23,20 @@ class DeviceTypes(str, Enum):
     PH_SENSOR = "ph_sensor"  # measures the acidity or alkalinty of a liquid, essential for water treatment and chemical precesses
     VALVE_ACTUATOR = "valve_actuator"  # a mechanical device for opening and closing a valve, allowing remote control of fluid flow
 
+    @classmethod
+    def values(cls) -> list[str]:
+        return [enum.value for enum in cls]
+
 
 class DeviceStaus(str, Enum):
     ONLINE = "online"
     OFFLINE = "offline"
     MAINTENANCE = "maintenance"
     ERROR = "error"
+
+    @classmethod
+    def values(cls) -> list[str]:
+        return [enum.value for enum in cls]
 
 
 class DeviceBase(BaseModel):
