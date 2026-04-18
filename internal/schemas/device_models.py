@@ -65,7 +65,7 @@ class DeviceBase(BaseModel):
     )
 
     status: Optional[DeviceStaus] = Field(
-        default=None,
+        default="online",
         description="The current status of the device or sensor",
         examples=["online", "maintenance"]
     )
