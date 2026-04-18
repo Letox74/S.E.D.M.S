@@ -3,8 +3,6 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-type Number = int | float
-
 
 class PredictionRead(BaseModel):
     id: int = Field(
@@ -21,7 +19,7 @@ class PredictionRead(BaseModel):
         max_length=36
     )
 
-    predicted_load: Number = Field(
+    predicted_load: float = Field(
         default=...,
         description="The predicted power consumption in watts over the next X hours",
         ge=0

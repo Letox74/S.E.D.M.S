@@ -3,11 +3,9 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-type Number = int | float
-
 
 class TelemetryBase(BaseModel):
-    voltage: Number = Field(
+    voltage: float = Field(
         default=...,
         description="The current voltage of the device or sensor, measured in volts",
         examples=[230.5, 400],
@@ -15,7 +13,7 @@ class TelemetryBase(BaseModel):
         le=500
     )
 
-    current: Number = Field(
+    current: float = Field(
         default=...,
         description="The electric current, measured in ampere",
         examples=[12.4],
@@ -23,7 +21,7 @@ class TelemetryBase(BaseModel):
         le=100
     )
 
-    frequency: Number = Field(
+    frequency: float = Field(
         default=...,
         description="Grid frequency in Hertz",
         examples=[50.01],
@@ -31,7 +29,7 @@ class TelemetryBase(BaseModel):
         le=65
     )
 
-    signal_strength: Number = Field(
+    signal_strength: float = Field(
         default=...,
         description="Received Signal Strength Indicator in dBm. Values closer to 0 indicate a stronger signal",
         examples=[-65.5],

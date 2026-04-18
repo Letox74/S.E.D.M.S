@@ -3,8 +3,6 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-type Number = int | float
-
 
 class AnalyticsRead(BaseModel):
     id: int = Field(
@@ -21,31 +19,31 @@ class AnalyticsRead(BaseModel):
         max_length=36
     )
 
-    avg_power: Number = Field(
+    avg_power: float = Field(
         default=...,
         description="The average power of the device or sensor, measured in Watts (W)",
         ge=0
     )
 
-    peak_power: Number = Field(
+    peak_power: float = Field(
         default=...,
         description="The highest power of the device or sensor, measured in Watts (W)",
         ge=0
     )
 
-    min_power: Number = Field(
+    min_power: float = Field(
         default=...,
         description="The lowest power of the device or sensor, measured in Watts (W)",
         ge=0
     )
 
-    variance_power: Number = Field(
+    variance_power: float = Field(
         default=...,
         description="The variance power of the device or sensor, measured in Watts (W)",
         ge=0
     )
 
-    operation_hours: Number = Field(
+    operation_hours: float = Field(
         default=...,
         description="The operating time of the sensor or device in hours",
         ge=0
@@ -58,7 +56,7 @@ class AnalyticsRead(BaseModel):
         le=1
     )
 
-    energy_consumption: Number = Field(
+    energy_consumption: float = Field(
         default=...,
         description="The energy consumption of the device or sensor, measured in kilowatt-hours (kWh)"
     )
