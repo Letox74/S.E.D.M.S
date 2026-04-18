@@ -103,15 +103,15 @@ class DeviceUpdate(DeviceBase):
         description="The descripton of the device or sensor"
     )
 
-    is_active: Optional[bool] = Field(
-        default=None,
-        description="If the device or sensor is currently active"
-    )
-
     status: Optional[DeviceStaus] = Field(
         default=None,
         description="The current status of the device or sensor",
         examples=["online", "maintenance"]
+    )
+
+    is_active: Optional[bool] = Field(
+        default=None,
+        description="If the device or sensor is currently active"
     )
 
 
