@@ -6,7 +6,13 @@ from api.dependencies import api_key_auth
 from api.limiter import limiter, rate_limit_exceeded_handler
 from api.middleware.audit import AuditMiddleware
 from api.router import device_router
-from core.config import ACTIVATE_RATE_LIMITS
+from core.config import (
+    VERSION,
+    DOCS_URL,
+    REDOC_URL,
+    OPENAPI_URL,
+    ACTIVATE_RATE_LIMITS
+)
 from core.lifespan import lifespan
 from core.logging_config import setup_logging
 
@@ -15,10 +21,10 @@ setup_logging()
 app = FastAPI(
     title="S.E.D.M.S",
     summary="Smart Energy & Device Management System",
-    version="0.1.0",
-    docs_url="/sedms/api/docs",
-    redoc_url="/sedms/api/redoc",
-    openapi_url="/sedms/api/openapi.json",
+    version=VERSION,
+    docs_url=DOCS_URL,
+    redoc_url=REDOC_URL,
+    openapi_url=OPENAPI_URL,
     lifespan=lifespan,
     dependencies=[Depends(api_key_auth)]
 )
