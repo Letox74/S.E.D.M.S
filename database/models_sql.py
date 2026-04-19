@@ -21,12 +21,16 @@ CREATE_TELEMETRY_SQL = """
             current REAL NOT NULL, 
             signal_strengh REAL NOT NULL,
             frequency REAL NOT NULL,
+            temperature REAL NOT NULL,
+            battery_loss REAL,
             timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (device_id) REFERENCES devices (id) ON DELETE CASCADE
         );
 """
 # current: the current (in amperes)
 # voltage: the electric voltage (in volts)
+# power can be calculated: voltage * current
+# resistence can be calculated: voltage / current
 
 CREATE_ANALYTICS_SQL = """
         CREATE TABLE IF NOT EXISTS analytics (
@@ -35,7 +39,20 @@ CREATE_ANALYTICS_SQL = """
             avg_power REAL NOT NULL DEFAULT 0,
             peak_power REAL NOT NULL DEFAULT 0,
             min_power REAL NOT NULL DEFAULT 0,
+            std_power REAL NOT NULL DEFAULT 0,
             variance_power REAL NOT NULL DEFAULT 0,
+            avg_voltage REAL NOT NULL DEFAULT 0,
+            peak_voltage REAL NOT NULL DEFAULT 0,
+            min_voltage REAL NOT NULL DEFAULT 0,
+            std_voltage REAL NOT NULL DEFAULT 0,
+            avg_current REAL NOT NULL DEFAULT 0,
+            peak_current REAl NOT NULL DEFAULT 0,
+            min_current REAL NOT NULL DEFAULT 0,
+            std_current REAL NOT NULL DEFAULT 0,
+            avg_singal_strength NOT NULL DEFAULT 0,
+            peak_signal_strength NOT NULL DEFAUTL 0,
+            min_signal_strength NOT NULL DEFAULT 0,
+            std_signal_strength NOT NULL DEFAULT 0,
             operation_hours REAL NOT NULL DEFAULT 0,
             efficiency_score REAL NOT NULL DEFAULT 0,
             energy_consumption REAL NOT NULL DEFAULT 0,
@@ -50,10 +67,12 @@ CREATE_PREDICTIONS_SQL = """
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             device_id TEXT NOT NULL,
             predicted_load REAL NOT NULL,
+            actual_load REAL,
             anomaly_score REAL NOT NULL,
             is_anomaly BOOLEAN NOT NULL,
-            feature_importance TEXT NOT NULL,
-            predicton_horizon_minutes INTEGER DEFAULT 0,
+            confidence REAL NOT NULL,
+            feature_importance_json TEXT NOT NULL,
+            prediction_horizon_minutes INTEGER NOT NULL,
             model_version TEXT NOT NULL,
             timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (device_id) REFERENCES devices (id) ON DELETE CASCADE
