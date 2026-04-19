@@ -1,10 +1,9 @@
 from fastapi import FastAPI, Depends
 from slowapi.errors import RateLimitExceeded
-from slowapi.extension import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
 
 from api.dependencies import api_key_auth
-from api.limiter import limiter
+from api.limiter import limiter, rate_limit_exceeded_handler
 from api.middleware.audit import AuditMiddleware
 from api.router import device_router
 from core.config import ACTIVATE_RATE_LIMITS
@@ -27,12 +26,13 @@ app = FastAPI(
 if ACTIVATE_RATE_LIMITS:
     # Add a limiter and an error handler
     app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
     # Register the middleware so that the default limits apply
     app.add_middleware(SlowAPIMiddleware)
 
-app.add_middleware(AuditMiddleware)  # add custom middleware
+# add custom middleware
+app.add_middleware(AuditMiddleware)
 
 # include routers
 app.include_router(device_router, prefix="/sedms/api")

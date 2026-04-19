@@ -1,21 +1,33 @@
-from fastapi import Request
+from fastapi import Request, status
+from fastapi.responses import JSONResponse
 from slowapi import Limiter
+from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from core.config import DEFAULT_RATE_LIMIT, \
-    DEFAULT_TELEMETRY_RATE_LIMIT  # can be set in .env (standard is 35/minute and telemetry is 60/minute)
-
-
-async def get_default_limit(request: Request) -> str:
-    url_path = request.url.path
-
-    if "api/telemetry" in url_path: # if the request is sent to the telemetry endpoint
-        return DEFAULT_TELEMETRY_RATE_LIMIT
-
-    return DEFAULT_RATE_LIMIT
-
+from core.config import DEFAULT_RATE_LIMIT  # can be set in .env (standard is 35/minute and telemetry is 60/minute)
 
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=[get_default_limit]
+    default_limits=[DEFAULT_RATE_LIMIT]
 )  # define limiter
+
+
+# rewrite slowapis _rate_limit_exceeded_handler function to safen it
+def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONResponse:
+    if not isinstance(exc, RateLimitExceeded):
+        return JSONResponse(
+            content={"error": "Rate limit exceeded"},
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS
+        )
+
+    response = JSONResponse(
+        content={"error", f"Rate limit exceeded: {exc.detail}"},
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS
+    )
+
+    if hasattr(request.state, "view_rate_limit"):  # only call _inject_headers if view_rate_limit was set
+        response = request.app.state.limiter._inject_headers(
+            response, request.app.state.view_rate_limit
+        )
+
+    return response

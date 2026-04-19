@@ -16,4 +16,4 @@ API_KEY: str = os.getenv("API_KEY")
 # rate limits
 DEFAULT_RATE_LIMIT: str = "35/minute"
 DEFAULT_TELEMETRY_RATE_LIMIT: str = "60/minute"
-ACTIVATE_RATE_LIMITS: bool = False
+ACTIVATE_RATE_LIMITS: bool = True
