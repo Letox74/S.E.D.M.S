@@ -1,4 +1,4 @@
 FROM ubuntu:latest
-LABEL authors="tomro"
+LABEL authors="Letox"
 
 ENTRYPOINT ["top", "-b"]

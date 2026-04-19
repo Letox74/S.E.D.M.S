@@ -1,4 +1,3 @@
-import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, Field
@@ -39,7 +38,7 @@ class TelemetryBase(BaseModel):
 
 
 class TelemetryCreate(TelemetryBase):
-    device_id: uuid.UUID | str = Field(
+    device_id: str = Field(
         default=...,
         description="The generated uuid id for the device or sensor, where the telemetry data is from",
         min_length=36,
@@ -51,7 +50,6 @@ class TelemtryRead(TelemetryBase):
     id: int = Field(
         default=...,
         description="The generated id of the data",
-        examples=[3, 8, 24, 81],
         ge=0
     )
 

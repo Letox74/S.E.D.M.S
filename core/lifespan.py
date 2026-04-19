@@ -3,11 +3,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from config import DB_PATH
 from database.connection import DatabaseManager
+from .config import DB_PATH
 
-app_logger = logging.getLogger("app")
-error_logger = logging.getLogger("error")
+app_logger = logging.getLogger("App")
+error_logger = logging.getLogger("Error")
 
 
 @asynccontextmanager

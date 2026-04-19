@@ -7,9 +7,11 @@ CREATE_DEVICES_SQL = """
             description TEXT,
             status TEXT DEFAULT 'online',
             is_active BOOLEAN NOT NULL DEFAULT 1,
-            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            modified_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
 """
+# both timestamps are UTC time
 
 CREATE_TELEMETRY_SQL = """
         CREATE TABLE IF NOT EXISTS telemetry (

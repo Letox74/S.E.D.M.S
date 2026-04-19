@@ -2,7 +2,8 @@ from fastapi import Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from core.config import DEFAULT_RATE_LIMIT, DEFAULT_TELEMETRY_RATE_LIMIT  # can be set in .env (standard is 35/minute)
+from core.config import DEFAULT_RATE_LIMIT, \
+    DEFAULT_TELEMETRY_RATE_LIMIT  # can be set in .env (standard is 35/minute and telemetry is 60/minute)
 
 
 async def get_default_limit(request: Request) -> str:

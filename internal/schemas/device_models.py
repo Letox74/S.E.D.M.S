@@ -1,9 +1,8 @@
 from datetime import datetime
 from enum import Enum
 from typing import Optional
-from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class DeviceTypes(str, Enum):
@@ -24,111 +23,119 @@ class DeviceTypes(str, Enum):
     VALVE_ACTUATOR = "valve_actuator"  # a mechanical device for opening and closing a valve, allowing remote control of fluid flow
 
     @classmethod
-    def values(cls) -> list[str]:
+    async def values(cls) -> list[str]:
         return [enum.value for enum in cls]
 
 
-class DeviceStaus(str, Enum):
+class DeviceStatus(str, Enum):
     ONLINE = "online"
     OFFLINE = "offline"
     MAINTENANCE = "maintenance"
     ERROR = "error"
 
     @classmethod
-    def values(cls) -> list[str]:
+    async def values(cls) -> list[str]:
         return [enum.value for enum in cls]
 
 
 class DeviceBase(BaseModel):
+    model_config = ConfigDict(use_enum_values=True)
+
     name: str = Field(
         default=...,
-        description="The name of the device or sensor",
-        examples=["Living Room Sensor"],
+        description="The name of the Device",
         min_length=3,
         max_length=20
     )
 
     type: DeviceTypes = Field(
         default=...,
-        description="The device or sensor type",
-        examples=["vibration_sensor", "heat_pump", "solar_inverter"],
+        description="The type of the Device",
     )
 
     firmware_version: str = Field(
         default=...,
-        description="The firmware version of the device or sensor",
+        description="The firmware version of the Device",
+        min_length=5,
+        max_length=32
     )
 
     description: Optional[str] = Field(
         default=None,
-        description="The descripton of the device or sensor. The description is optional"
+        description="The descripton of the Device. The description is optional",
+        max_length=200
     )
 
-    status: Optional[DeviceStaus] = Field(
+    status: Optional[DeviceStatus] = Field(
         default="online",
-        description="The current status of the device or sensor",
-        examples=["online", "maintenance"]
+        description="The current status of Device"
     )
 
 
 class DeviceCreate(DeviceBase):
     is_active: Optional[bool] = Field(
         default=True,
-        description="If the device or sensor is currently active. Default is True"
+        description="If the Device is currently active. Default is True",
+        examples=[True, False]
     )
 
 
 class DeviceUpdate(DeviceBase):
     name: Optional[str] = Field(
         default=None,
-        description="The name of the device or sensor",
-        examples=["Living Room Sensor"],
+        description="The name of the Device",
         min_length=3,
         max_length=20
     )
 
     type: Optional[DeviceTypes] = Field(
         default=None,
-        description="The device or sensor type",
-        examples=["vibration_sensor", "heat_pump", "solar_inverter"],
+        description="The type of the Device",
     )
 
     firmware_version: Optional[str] = Field(
         default=None,
-        description="The firmware version of the device or sensor",
+        description="The firmware version of the Device",
+        min_length=5,
+        max_length=32
     )
 
     description: Optional[str] = Field(
         default=None,
-        description="The descripton of the device or sensor"
+        description="The descripton of the Device",
+        max_length=200
     )
 
-    status: Optional[DeviceStaus] = Field(
+    status: Optional[DeviceStatus] = Field(
         default=None,
-        description="The current status of the device or sensor",
-        examples=["online", "maintenance"]
+        description="The current status of the Device",
     )
 
     is_active: Optional[bool] = Field(
         default=None,
-        description="If the device or sensor is currently active"
+        description="If the Device is currently active"
     )
 
 
 class DeviceRead(DeviceBase):
-    id: UUID | str = Field(
+    id: str = Field(
         default=...,
-        description="The generated uuid id for the device or sensor",
+        description="The generated uuid ID for the Device",
         min_length=36,
         max_length=36
     )
 
     is_active: bool = Field(
         default=True,
-        description="If the device or sensor is currently active"
+        description="If the Device is currently active"
     )
 
     created_at: datetime = Field(
         default=...,
-        description="The time the device or sensor was registered"
+        description="The time the Device was registered"
+    )
+
+    modified_at: datetime = Field(
+        default=...,
+        description="When the Device was last modified"
     )

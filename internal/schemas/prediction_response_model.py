@@ -1,4 +1,3 @@
-import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, Field
@@ -8,11 +7,10 @@ class PredictionRead(BaseModel):
     id: int = Field(
         default=...,
         description="The generated id of the data",
-        examples=[3, 8, 24, 81],
         ge=0
     )
 
-    device_id: uuid.UUID | str = Field(
+    device_id: str = Field(
         default=...,
         description="The generated uuid id for the device or sensor, where the prediction data is from",
         min_length=36,
