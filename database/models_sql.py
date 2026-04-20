@@ -22,7 +22,7 @@ CREATE_TELEMETRY_SQL = """
             signal_strengh REAL NOT NULL,
             frequency REAL NOT NULL,
             temperature REAL NOT NULL,
-            battery_loss REAL,
+            current_battery_percentage REAL,
             timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (device_id) REFERENCES devices (id) ON DELETE CASCADE
         );
@@ -49,10 +49,10 @@ CREATE_ANALYTICS_SQL = """
             peak_current REAl NOT NULL DEFAULT 0,
             min_current REAL NOT NULL DEFAULT 0,
             std_current REAL NOT NULL DEFAULT 0,
-            avg_singal_strength NOT NULL DEFAULT 0,
-            peak_signal_strength NOT NULL DEFAUTL 0,
-            min_signal_strength NOT NULL DEFAULT 0,
-            std_signal_strength NOT NULL DEFAULT 0,
+            avg_singal_strength REAL NOT NULL DEFAULT 0,
+            peak_signal_strength REAL NOT NULL DEFAUTL 0,
+            min_signal_strength REAL NOT NULL DEFAULT 0,
+            std_signal_strength REAL NOT NULL DEFAULT 0,
             operation_hours REAL NOT NULL DEFAULT 0,
             efficiency_score REAL NOT NULL DEFAULT 0,
             energy_consumption REAL NOT NULL DEFAULT 0,
