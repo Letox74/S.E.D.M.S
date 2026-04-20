@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -10,24 +11,33 @@ class PredictionRead(BaseModel):
         ge=0
     )
 
-    device_id: str = Field(
+    device_id: UUID = Field(
         default=...,
-        description="The generated uuid id for the device or sensor, where the prediction data is from",
-        min_length=36,
-        max_length=36
+        description="The generated uuid for the Device, where the prediction data is from"
     )
 
     predicted_load: float = Field(
         default=...,
-        description="The predicted power consumption in watts over the next X hours",
-        ge=0
+        description="The predicted power consumption in Watts over the next X hours",
+        ge=0.0
+    )
+
+    actual_load: float | None = Field(
+        default=None,
+        description="The actual power consumption in Watts",
+        ge=0.0
+    )
+
+    prediction_error: float | None = Field( # calculated by actual_load - predicted_load
+        default=None,
+        description="How wrong the model was"
     )
 
     anomaly_score: float = Field(
         default=...,
         description="How confident the model is with the prediction (0 very confident, 1 complete anomaly)",
-        ge=0,
-        le=1
+        ge=0.0,
+        le=1.0
     )
 
     is_anomaly: bool = Field(
@@ -37,7 +47,7 @@ class PredictionRead(BaseModel):
 
     feature_importance: str = Field(
         default=...,
-        description="The most important features according to the model"
+        description="The most important features according to the model (JSON String)"
     )
 
     prediction_horizon_minutes: int = Field(

@@ -63,10 +63,12 @@ CREATE_ANALYTICS_SQL = """
             efficiency_score REAL NOT NULL DEFAULT 0,
             energy_consumption REAL NOT NULL DEFAULT 0,
             last_reset DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (device_id) REFERENCES devices (id) ON DELETE CASCADE
         );
 """
-# energy_consumption: watt hours
+# energy_consumption: watt hours (Wh)
+# watt hours: W * hours (example: Device runs 24h with 30W -> 30 * 24 = 720 Wh)
 
 CREATE_PREDICTIONS_SQL = """
         CREATE TABLE IF NOT EXISTS predictions (

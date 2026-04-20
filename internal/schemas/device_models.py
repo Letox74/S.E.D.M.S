@@ -1,6 +1,7 @@
 from datetime import datetime
 from enum import Enum
 from typing import Optional
+from uuid import UUID
 
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -79,6 +80,11 @@ class DeviceCreate(DeviceBase):
         examples=[True, False]
     )
 
+    has_battery: bool = Field(
+        default=...,
+        description="If the Device has a battery"
+    )
+
 
 class DeviceUpdate(DeviceBase):
     name: Optional[str] = Field(
@@ -118,11 +124,9 @@ class DeviceUpdate(DeviceBase):
 
 
 class DeviceRead(DeviceBase):
-    id: str = Field(
+    id: UUID = Field(
         default=...,
-        description="The generated uuid ID for the Device",
-        min_length=36,
-        max_length=36
+        description="The generated uuid ID for the Device"
     )
 
     is_active: bool = Field(
