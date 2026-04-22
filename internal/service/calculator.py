@@ -41,27 +41,26 @@ async def _calculate_power(data: list[float]) -> dict[str, float]:
     return await _helper_calculate("power", data)
 
 
-# avg peak min std
 async def _calculate_voltage(data: list[float]) -> dict[str, float]:
     return await _helper_calculate("voltage", data)
 
 
-async def _calculate_current(data: list[float]):
+async def _calculate_current(data: list[float]) -> dict[str, float]:
     return await _helper_calculate("current", data)
 
 
-async def _calculate_signal_strength(data: list[float]):
+async def _calculate_signal_strength(data: list[float]) -> dict[str, float]:
     return await _helper_calculate("signal_strength", data)
 
 
-async def _calculate_temperature(data: list[float]):
+async def _calculate_temperature(data: list[float]) -> dict[str, float]:
     return await _helper_calculate("temperature", data)
 
 
-async def _calculate_battery(data: list[float]):
+async def _calculate_battery(data: list[float]) -> dict[str, float]:
     return {
-        f"avg_battery_percentage": round(float(np.mean(data)), 0),
-        f"min_battery_percentage": round(float(np.min(data)), 0)
+        f"avg_battery_percentage": round(float(np.mean(data)), 2),
+        f"min_battery_percentage": round(float(np.min(data)), 2)
     }
 
 

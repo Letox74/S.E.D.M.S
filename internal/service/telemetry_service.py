@@ -278,12 +278,16 @@ async def process_analytic_calculations(task_id: str, device_id: str, db: Databa
         telemetry_logger.info(f"Task ID {task_id}\t stopped, can't process with only one telemetry entry")
         return
 
-    row = await db_get_latest_telemetry(device_id, db)
+    telemetry = await db_get_latest_telemetry(device_id, db)
     telemetry_logger.info(f"Task ID: {task_id}\t Infos fetched")
     telemetry_logger.info(f"Task ID: {task_id}\t start fetching Infos for the last 24 hours")
 
+    if telemetry.timestamp < (datetime.now(timezone.utc) - timedelta(minutes=15)):
+        telemetry_logger.info(f"Task ID {task_id}\t stopped because last telemetry entry is not longer than 15 minutes")
+        return
+
     past_telemetry = await get_last_24h(device_id, db)
-    past_telemetry.append(row)
+    past_telemetry.append(telemetry)
     telemetry_logger.info(f"Task ID: {task_id}\t Infos found, calculating the analytics")
 
     analytic_data = await calculate_statistics(past_telemetry, db)
