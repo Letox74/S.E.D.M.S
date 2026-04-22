@@ -14,6 +14,17 @@ CREATE_DEVICES_SQL = """
 """
 # both timestamps are UTC time
 
+CREATE_DEVICE_STATUS_LOG_SQL = """
+        CREATE TABLE IF NOT EXISTS device_status_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            device_id TEXT NOT NULL,
+            status TEXT NOT NULL,
+            timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (device_id) REFERENCES devices (id) ON DELETE CASCADE
+        );
+"""
+# for the analytic data (to check last_reset and operation_hours)
+
 CREATE_TELEMETRY_SQL = """
         CREATE TABLE IF NOT EXISTS telemetry (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -204,11 +204,7 @@ async def db_delete_device(device_id: str, db: DatabaseManager) -> None:
         DELETE FROM devices 
         WHERE id = ?;
     """
-    try:
-        await db.execute_transaction(sql, (device_id,))
-    except Exception:
-        error_logger.error(f"Failed to delete Device {device_id}")
-
+    await db.execute_transaction(sql, (device_id,))
     app_logger.info(f"Device with ID {device_id} was deleted")
 
     return None
@@ -233,6 +229,21 @@ async def db_toggle_active(device_id: str, db: DatabaseManager) -> DeviceRead:
         WHERE id = ?
         RETURNING *;
     """
-    row = await db.execute_transaction(sql, (datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"), device_id))
+    row = await db.execute_transaction(sql, (datetime.now(timezone.utc), device_id))
 
     return DeviceRead(**dict(row))
+
+
+# device status log service
+async def get_last_status_timestamp(device_id: str, status: str, db: DatabaseManager) -> datetime:
+    sql = """
+        SELECT timestamp
+        FROM device_status_log
+        WHERE device_id = ?
+            AND status = ?
+        ORDER BY timestamp DESC
+        LIMIT 1;
+    """
+    row = await db.fetch_one(sql, (device_id, status))
+
+    return datetime.fromisoformat(row["timstamp"])

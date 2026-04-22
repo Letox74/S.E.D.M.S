@@ -8,9 +8,8 @@ API_KEY_HEADER = APIKeyHeader(name="API-KEY", scheme_name="API Key")
 
 
 # Basic Dependencies
-async def api_key_auth(api_key: str = Security(API_KEY_HEADER)) -> str:
+async def api_key_auth(api_key: str = Security(API_KEY_HEADER)) -> None:
     await verify_api_key(api_key) # checks if the provided api key matches the one in .env
-    return api_key
 
 
 async def get_db_session(request: Request) -> DatabaseManager:
@@ -18,7 +17,7 @@ async def get_db_session(request: Request) -> DatabaseManager:
 
 
 # Device Dependencies
-async def validate_device_exists(device_id: str, db: DatabaseManager) -> str:
+async def validate_device_exists(device_id: str, db: DatabaseManager) -> None:
     result = await db.fetch_one("""
         SELECT 1
         FROM devices
@@ -31,10 +30,8 @@ async def validate_device_exists(device_id: str, db: DatabaseManager) -> str:
             detail=f"Device with ID {device_id} not found"
         )
 
-    return device_id
 
-
-async def validate_firmware_version_exists(firmware_version: str, db: DatabaseManager) -> str:
+async def validate_firmware_version_exists(firmware_version: str, db: DatabaseManager) -> None:
     result = await db.fetch_one("""
         SELECT 1
         FROM devices
@@ -47,4 +44,17 @@ async def validate_firmware_version_exists(firmware_version: str, db: DatabaseMa
             detail=f"No Device found with this firmware version: {firmware_version}"
         )
 
-    return firmware_version
+
+# Telemetry Dependencies
+async def validate_device_has_telemetry(device_id: str, db: DatabaseManager) -> None:
+    result = await db.fetch_one("""
+        SELECT 1
+        FROM telemetry
+        WHERE device_id = ?
+    """, (device_id,))
+
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No Telemetry data found for this Device: {device_id}"
+        )

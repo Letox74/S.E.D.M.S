@@ -52,3 +52,7 @@ def setup_logging():
     # Telemetry Logger
     telemetry_logger = logging.getLogger("Telemetry")
     setup_single_logger(telemetry_logger, LOG_DIR / "telemetry.log")
+
+    # Analytics Logger
+    analytics_logger = logging.getLogger("Analytics")
+    setup_single_logger(analytics_logger, LOG_DIR / "analytics.log")

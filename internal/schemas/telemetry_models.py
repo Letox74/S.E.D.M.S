@@ -52,7 +52,7 @@ class TelemetryBase(BaseModel):
     )
 
     current_battery_percentage: float = Field(
-        default=-1.0, # if the Device does not have a battery
+        default=-1.0,  # if the Device does not have a battery
         description="The current battery percentage of the Device",
         examples=[43.2, 76.9],
         ge=0.0,
@@ -64,7 +64,7 @@ class TelemetryCreate(TelemetryBase):
     pass
 
 
-class TelemtryRead(TelemetryBase):
+class TelemetryRead(TelemetryBase):
     id: int = Field(
         default=...,
         description="The generated ID of the data",

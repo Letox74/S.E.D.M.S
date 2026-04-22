@@ -1,4 +1,5 @@
 import logging
+import sqlite3
 from pathlib import Path
 from typing import Never
 
@@ -19,7 +20,7 @@ class DatabaseManager:
 
     async def connect(self) -> None:
         try:
-            self._connection = await aiosqlite.connect(self.db_path)
+            self._connection = await aiosqlite.connect(self.db_path, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
             self._connection.row_factory = aiosqlite.Row  # enable Row factory to access columns by name
 
             # WAL Mode, Foreign Keys and auto indexing activation
@@ -57,7 +58,7 @@ class DatabaseManager:
             error_logger.error(f"Fetch one failed: {e}")
             return None
 
-    async def execute_transaction(self, query: str, params: tuple = ()) -> aiosqlite.Row | None:
+    async def execute_transaction(self, query: str, params: tuple = ()) -> aiosqlite.Row | int:
         # this function is used for INSERT/UPDATE or DELETE
         try:
             if "RETURNING" in query:  # when something needs to be returned from the row after execution
@@ -67,8 +68,11 @@ class DatabaseManager:
 
                     return row
 
-            await self._connection.execute(query, params)
-            await self._connection.commit()
+            async with self._connection.execute(query, params) as cursor:
+                row_count = cursor.rowcount # how many rows were deleted, updated or inserted
+                self._connection.commit()
+
+                return row_count
 
         except Exception as e:
             await self._connection.rollback()  # rollback() reverts all changes since last commit

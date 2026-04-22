@@ -32,6 +32,7 @@ class DeviceStatus(str, Enum):
     ONLINE = "online"
     OFFLINE = "offline"
     MAINTENANCE = "maintenance"
+    RESTARTING = "restarting"
     ERROR = "error"
 
     @classmethod
@@ -120,6 +121,11 @@ class DeviceUpdate(DeviceBase):
     is_active: Optional[bool] = Field(
         default=None,
         description="If the Device is currently active"
+    )
+
+    has_battery: Optional[bool] = Field(
+        default=None,
+        description="If the Device has a battery"
     )
 
 

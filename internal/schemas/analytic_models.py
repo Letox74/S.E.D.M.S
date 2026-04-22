@@ -151,12 +151,6 @@ class AnalyticsBase(BaseModel):
         le=70.0
     )
 
-    operation_hours: float = Field(
-        default=...,
-        description="The operating time of the Device in hours",
-        ge=0
-    )
-
     avg_battery_percentage: float = Field(
         default=-1.0, # if the Device does not have a battery
         description="The average battery percentage of the Device",
@@ -187,6 +181,12 @@ class AnalyticsBase(BaseModel):
     last_reset: datetime = Field(
         default=...,
         description="The time when the Device was last resetet"
+    )
+
+    operation_hours: float = Field(
+        default=...,
+        description="The operating time of the Device in hours",
+        ge=0
     )
 
 

@@ -1,16 +1,22 @@
 from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
 from api.dependencies import api_key_auth
 from api.limiter import limiter, rate_limit_exceeded_handler
 from api.middleware.audit import AuditMiddleware
-from api.router import device_router
+from api.router import device_router, telemetry_router
 from core.config import (
     VERSION,
     DOCS_URL,
     REDOC_URL,
     OPENAPI_URL,
+    USE_CORS,
+    ALLOW_CREDENTIALS,
+    ALLOWED_ORIGINS,
+    ALLOWED_METHODS,
+    ALLOWED_HEADERS,
     ACTIVATE_RATE_LIMITS
 )
 from core.lifespan import lifespan
@@ -37,8 +43,18 @@ if ACTIVATE_RATE_LIMITS:
     # Register the middleware so that the default limits apply
     app.add_middleware(SlowAPIMiddleware)
 
+if USE_CORS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_credentials=ALLOW_CREDENTIALS,
+        allow_origins=ALLOWED_ORIGINS,
+        allow_methods=ALLOWED_METHODS,
+        allow_headers=ALLOWED_HEADERS
+    )
+
 # add custom middleware
 app.add_middleware(AuditMiddleware)
 
 # include routers
 app.include_router(device_router, prefix="/sedms/api")
+app.include_router(telemetry_router, prefix="/sedms/api")

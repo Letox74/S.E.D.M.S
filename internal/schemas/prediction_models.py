@@ -1,16 +1,11 @@
 from datetime import datetime
+from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 
-class PredictionRead(BaseModel):
-    id: int = Field(
-        default=...,
-        description="The generated id of the data",
-        ge=0
-    )
-
+class PredictionBase(BaseModel):
     device_id: UUID = Field(
         default=...,
         description="The generated uuid for the Device, where the prediction data is from"
@@ -22,13 +17,13 @@ class PredictionRead(BaseModel):
         ge=0.0
     )
 
-    actual_load: float | None = Field(
+    actual_load: Optional[float] = Field(
         default=None,
         description="The actual power consumption in Watts",
         ge=0.0
     )
 
-    prediction_error: float | None = Field( # calculated by actual_load - predicted_load
+    prediction_error: Optional[float] = Field(  # calculated by actual_load - predicted_load
         default=None,
         description="How wrong the model was"
     )
@@ -60,6 +55,18 @@ class PredictionRead(BaseModel):
     model_version: str = Field(
         default=...,
         description="Which model was used for the prediction"
+    )
+
+
+class PredictionCreate(PredictionBase):
+    pass
+
+
+class PredictionRead(PredictionBase):
+    id: int = Field(
+        default=...,
+        description="The generated id of the data",
+        ge=0
     )
 
     timestamp: datetime = Field(
