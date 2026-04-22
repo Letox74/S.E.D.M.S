@@ -21,6 +21,6 @@ async def insert_new_analytic(data: AnalyticsCreate, db: DatabaseManager) -> Ana
         RETURNING *;
     """
     row = await db.execute_transaction(sql, values)  # retrieve the entire row (due to RETURNING *)
-    analytics_logger.info(f"New Analytics Data from Device {fields["device_id"]}")
+    analytics_logger.info(f"Received new Analytics Data from Device {fields["device_id"]}")
 
     return AnalyticsRead(**dict(row))

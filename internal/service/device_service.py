@@ -11,6 +11,32 @@ app_logger = logging.getLogger("App")
 error_logger = logging.getLogger("Error")
 
 
+
+# device status log service
+async def get_last_status_timestamp(device_id: str, status: str, db: DatabaseManager) -> datetime:
+    sql = """
+        SELECT timestamp
+        FROM device_status_log
+        WHERE device_id = ?
+            AND status = ?
+        ORDER BY timestamp DESC
+        LIMIT 1;
+    """
+    row = await db.fetch_one(sql, (device_id, status))
+    timestamp_value = row["timestamp"]
+
+    return datetime.fromisoformat(timestamp_value) if isinstance(timestamp_value, str) else timestamp_value
+
+
+async def _update_status_log(device_id: str, status: str, db: DatabaseManager) -> None:
+    sql = """
+        INSERT INTO device_status_log
+        (device_id, status)
+        VALUES (?, ?)
+    """
+    await db.execute_transaction(sql, (device_id, status))
+
+
 async def db_get_all_devices(db: DatabaseManager) -> list[DeviceRead] | list[Never]:
     sql = """
         SELECT * 
@@ -180,6 +206,9 @@ async def db_update_device(device_id: str, data: DeviceUpdate, db: DatabaseManag
     old_device = await db_get_device(device_id, db)
     changes = data.model_dump(exclude_unset=True, exclude_none=True)  # exclude_unset and exclude_none to retrieve only the fields need to be updated
 
+    if "status" in changes.keys():
+        await _update_status_log(device_id, changes["status"], db)
+
     if not changes:
         return old_device
 
@@ -218,6 +247,7 @@ async def db_set_device_status(device_id: str, status: str, db: DatabaseManager)
         RETURNING *;
     """
     row = await db.execute_transaction(sql, (status, datetime.now(), device_id))
+    await _update_status_log(device_id, status, db)
 
     return DeviceRead(**dict(row))
 
@@ -232,18 +262,3 @@ async def db_toggle_active(device_id: str, db: DatabaseManager) -> DeviceRead:
     row = await db.execute_transaction(sql, (datetime.now(timezone.utc), device_id))
 
     return DeviceRead(**dict(row))
-
-
-# device status log service
-async def get_last_status_timestamp(device_id: str, status: str, db: DatabaseManager) -> datetime:
-    sql = """
-        SELECT timestamp
-        FROM device_status_log
-        WHERE device_id = ?
-            AND status = ?
-        ORDER BY timestamp DESC
-        LIMIT 1;
-    """
-    row = await db.fetch_one(sql, (device_id, status))
-
-    return datetime.fromisoformat(row["timstamp"])

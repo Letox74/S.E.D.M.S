@@ -206,12 +206,12 @@ async def db_get_telmetry_stats(
         # extract query results
         stats[low_alias] = {
             "value": min_row[low_alias],
-            "timestamp": min_row["timestamp"],
+            "timestamp": str(min_row["timestamp"]),
             "device_id": min_row["device_id"]
         }
         stats[high_alias] = {
             "value": max_row[high_alias],
-            "timestamp": max_row["timestamp"],
+            "timestamp": str(max_row["timestamp"]),
             "device_id": max_row["device_id"]
         }
 
@@ -220,7 +220,7 @@ async def db_get_telmetry_stats(
 
 async def db_alerts_battery(threshold: float, after: Optional[datetime], db: DatabaseManager) -> list[TelemetryRead]:
     # standard is 1 hour back
-    after= after if after is not None else (datetime.now(timezone.utc) - timedelta(hours=1))
+    after= after if after is not None else datetime.now(timezone.utc) - timedelta(hours=1)
 
     sql = """
         SELECT *
