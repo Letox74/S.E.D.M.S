@@ -14,7 +14,19 @@ error_logger = logging.getLogger("Error")
 
 
 # logic for the API Endpoints
-async def db_ingest_telemetry(data: TelemetryCreate, db: DatabaseManager) -> TelemetryRead:
+async def db_ingest_telemetry(data: TelemetryCreate, db: DatabaseManager) -> TelemetryRead | str:
+    cooldown = timedelta(minutes=15)
+    latest_telemetry = await db_get_latest_telemetry(data.device_id, db)
+
+    if latest_telemetry is not None:
+        time_since_last = datetime.now(timezone.utc) - latest_telemetry.timestamp
+        if time_since_last < cooldown:
+            # check if the last telemetry is 15 minutes or newer
+            message = f"Telemetry ingestion rejected for device {data.device_id} cooldown active {(cooldown - time_since_last).total_seconds()} seconds remaining"
+
+            telemetry_logger.info(message)
+            return message
+
     fields = data.model_dump()  # to not type it manually
 
     # prepare sql string
@@ -23,7 +35,7 @@ async def db_ingest_telemetry(data: TelemetryCreate, db: DatabaseManager) -> Tel
     values = tuple(fields.values())
 
     sql = f"""
-        INSERT INTO devices
+        INSERT INTO telemetry
         ({colums})
         VALUES ({placeholders})
         RETURNING *;
@@ -34,7 +46,7 @@ async def db_ingest_telemetry(data: TelemetryCreate, db: DatabaseManager) -> Tel
     return TelemetryRead(**dict(row))
 
 
-async def db_get_latest_telemetry(device_id: str, db: DatabaseManager) -> TelemetryRead:
+async def db_get_latest_telemetry(device_id: str, db: DatabaseManager) -> TelemetryRead | None:
     sql = """
         SELECT *
         FROM telemetry
@@ -44,26 +56,33 @@ async def db_get_latest_telemetry(device_id: str, db: DatabaseManager) -> Teleme
     """
     row = await db.fetch_one(sql, (device_id,))
 
-    return TelemetryRead(**dict(row))
+    return TelemetryRead(**dict(row)) if row is not None else None
 
 
 async def db_get_telemetry_history(
-        device_id: str,
+        device_id: Optional[str],
         daterange: Optional[list[datetime]],
-        limit: int,
+        limit: Optional[int],
         db: DatabaseManager
 ) -> list[TelemetryRead]:
     # strftime to a string if datetime was set, then prepare the params
-    daterange = daterange if daterange is not None else [None]
+    daterange = daterange or [None]
     params = tuple(param for param in (device_id, *daterange, limit) if param is not None)
+
+    where_clause = []
+    if device_id:
+        where_clause.append("device_id = ?")
+    if daterange[0]:
+        where_clause.append("timestamp BETWEEN ? AND ?")
+
+    where_str = f"WHERE {" AND ".join(where_clause)}" if where_clause else ""
 
     sql = f"""
         SELECT *
         FROM telemetry
-        WHERE device_id = ?
-            {"AND timestamp BETWEEN ? AND ?" if daterange[0] is not None else ""}
+        {where_str}
         ORDER BY timestamp DESC
-        LIMIT ?;
+        {"LIMIT ?" if limit else ""};
     """
     rows = await db.fetch_all(sql, params)
 
@@ -119,31 +138,25 @@ async def db_telemetry_count(device_id: str, db: DatabaseManager) -> int:
     return row["count"]  # access column "count"
 
 
-async def db_get_telmetry_stats(
-        device_id: Optional[str],
-        daterange: Optional[list[datetime]],
-        db: DatabaseManager
-) -> dict[str, str | int | dict[str, str | int]]:
-    # redefine types and format if daterange was set
-    daterange = daterange if daterange is not None else [None]
-
-    # prepare simple queries
+async def _simple_sql_queries(where_clause: str, device_id: Optional[str]) -> tuple[str, str]:
     sql_total_count = f"""
-        SELECT 
-            COUNT(id) AS total_count
-        FROM telemetry
-        {"WHERE timestamp BETWEEN ? AND ?" if daterange[0] is not None else ""}
-        {"AND device_id = ?" if device_id is not None else ""};
-    """
+            SELECT 
+                COUNT(id) AS total_count
+            FROM telemetry
+            {where_clause};
+        """
     sql_last_ingestion = f"""
-        SELECT timestamp
-        FROM telemetry
-        {"WHERE device_id = ?" if device_id is not None else ""}
-        ORDER BY timestamp DESC
-        LIMIT 1;
-    """
+            SELECT timestamp
+            FROM telemetry
+            {"WHERE device_id = ?" if device_id else ""}
+            ORDER BY timestamp DESC
+            LIMIT 1;
+        """
 
-    # some more advances and longer queries
+    return sql_total_count, sql_last_ingestion
+
+
+async def _complex_queries(where_clause: str) -> tuple[dict[str, str]] | tuple[dict[str, tuple[str, str]]]:
     # using a mapping dict to not type manually
     mapping_dict = {
         "voltage": ("lowest_voltage", "highest_voltage"),
@@ -157,46 +170,37 @@ async def db_get_telmetry_stats(
     for key, (low_alias, high_alias) in mapping_dict.items():
         # insert the queries into a dict to easier access it
         queries[f"{key}_min"] = f"""
-                SELECT 
-                    {key} AS {low_alias}, 
-                    timestamp, 
-                    device_id
-                FROM telemetry
-                {"WHERE timestamp BETWEEN ? AND ?" if daterange[0] else ""}
-                {"AND device_id = ?" if daterange[0] else "WHERE device_id = ?"}
-                ORDER BY {key} ASC
-                LIMIT 1;
-            """
+                    SELECT 
+                        {key} AS {low_alias}, 
+                        timestamp, 
+                        device_id
+                    FROM telemetry
+                    {where_clause}
+                    ORDER BY {key} ASC
+                    LIMIT 1;
+                """
         queries[f"{key}_max"] = f"""
-                SELECT 
-                    {key} AS {high_alias}, 
-                    timestamp, 
-                    device_id
-                FROM telemetry
-                {"WHERE timestamp BETWEEN ? AND ?" if daterange[0] else ""}
-                {"AND device_id = ?" if daterange[0] else "WHERE device_id = ?"}
-                ORDER BY {key} DESC
-                LIMIT 1;
-            """
+                    SELECT 
+                        {key} AS {high_alias}, 
+                        timestamp, 
+                        device_id
+                    FROM telemetry
+                    {where_clause}
+                    ORDER BY {key} DESC
+                    LIMIT 1;
+                """
 
-    # prepare params
-    params = tuple(param for param in (*daterange,) if param is not None)
-    device_param = (device_id,) if device_id is not None else ()
+    return queries, mapping_dict
 
-    # fetch the results asynchron
-    results = await asyncio.gather(
-        db.fetch_one(sql_total_count, params + device_param if device_param else ()),
-        db.fetch_one(sql_last_ingestion, device_param if device_param else ()),
-        *[
-            db.fetch_one(query, params + device_param if device_param else ())
-            for query in queries.values()
-        ]
-    )
 
+async def _handle_results(
+        results,
+        mapping_dict: dict[str, tuple[str, str]]
+) -> dict[str, int | str | dict[str, float | str]]:
     # extract the results
     stats = {
         "total_count": results[0]["total_count"],
-        "last_ingestion": results[1]["timestamp"]
+        "last_ingestion": str(results[1]["timestamp"])
     }
 
     for index, (key, (low_alias, high_alias)) in enumerate(mapping_dict.items()):
@@ -218,15 +222,54 @@ async def db_get_telmetry_stats(
     return stats
 
 
+async def db_get_telmetry_stats(
+        device_id: Optional[str],
+        daterange: Optional[list[datetime]],
+        db: DatabaseManager
+) -> dict[str, int | str | dict[str, float | str]]:
+    # redefine types and format if daterange was set
+    daterange = daterange or [None]
+
+    where_clause = []
+    params = []
+    if daterange[0]:
+        where_clause.append("timestamp BETWEEN ? AND ?")
+        params.extend(daterange)
+    if device_id:
+        where_clause.append("device_id = ?")
+        params.append(device_id)
+
+    params = tuple(params)
+    where_str = f"WHERE {" AND ".join(where_clause)}" if where_clause else ""
+
+    # get queries
+    sql_strings, queries = await asyncio.gather(
+        _simple_sql_queries(where_str, device_id),
+        _complex_queries(where_str)
+    )
+
+    # fetch the results asynchron
+    results = await asyncio.gather(
+        db.fetch_one(sql_strings[0], params),
+        db.fetch_one(sql_strings[1], (device_id,) if device_id else ()),
+        *[
+            db.fetch_one(query, params)
+            for query in queries[0].values()
+        ]
+    )
+    return await _handle_results(results, queries[1])
+
+
 async def db_alerts_battery(threshold: float, after: Optional[datetime], db: DatabaseManager) -> list[TelemetryRead]:
     # standard is 1 hour back
-    after= after if after is not None else datetime.now(timezone.utc) - timedelta(hours=1)
+    after = after or (datetime.now(timezone.utc) - timedelta(hours=1)).replace(microsecond=0)
 
     sql = """
         SELECT *
         FROM telemetry
-        WHERE battery_percentage < ?
-            AND timestamp > ?;
+        WHERE current_battery_percentage < ? AND >= 0
+            AND timestamp > ?
+        ORDER BY timestamp DESC;
     """
     rows = await db.fetch_all(sql, (threshold, after))
 
@@ -238,13 +281,14 @@ async def db_alerts_temperature(
         after: Optional[datetime],
         db: DatabaseManager
 ) -> list[TelemetryRead]:
-    after = after if after is not None else datetime.now(timezone.utc) - timedelta(hours=1)
+    after = after or (datetime.now(timezone.utc) - timedelta(hours=1)).replace(microsecond=0)
 
     sql = """
         SELECT *
         FROM telemetry
-        WHERE temperature < ?
-            AND timestamp > ?;
+        WHERE temperature > ?
+            AND timestamp > ?
+        ORDER BY timestamp DESC;
     """
     rows = await db.fetch_all(sql, (threshold, after))
 
@@ -253,7 +297,7 @@ async def db_alerts_temperature(
 
 # logic for the Backgroundtask (calculate analytics)
 async def get_last_24h(device_id: str, db: DatabaseManager) -> list[TelemetryRead]:
-    time = datetime.now(timezone.utc) - timedelta(hours=24)
+    time = (datetime.now(timezone.utc) - timedelta(hours=24)).replace(microsecond=0)
 
     sql = """
         SELECT * 
@@ -270,7 +314,7 @@ async def get_last_24h(device_id: str, db: DatabaseManager) -> list[TelemetryRea
 async def process_analytic_calculations(task_id: str, device_id: str, db: DatabaseManager) -> None:
     start_time = time.perf_counter()
 
-    telemetry_logger.info(f"Task with ID: {task_id}\t has started")
+    telemetry_logger.info(f"Task ID: {task_id}\t has started")
     telemetry_logger.info(f"Task ID: {task_id}\t fetching last telemetry entry of Device with ID: {device_id}")
 
     telemetry_count = await db_telemetry_count(device_id, db)
@@ -281,10 +325,6 @@ async def process_analytic_calculations(task_id: str, device_id: str, db: Databa
     telemetry = await db_get_latest_telemetry(device_id, db)
     telemetry_logger.info(f"Task ID: {task_id}\t Infos fetched")
     telemetry_logger.info(f"Task ID: {task_id}\t start fetching Infos for the last 24 hours")
-
-    if telemetry.timestamp < (datetime.now(timezone.utc) - timedelta(minutes=15)):
-        telemetry_logger.info(f"Task ID {task_id}\t stopped because last telemetry entry is not longer than 15 minutes")
-        return
 
     past_telemetry = await get_last_24h(device_id, db)
     past_telemetry.append(telemetry)

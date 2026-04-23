@@ -1,3 +1,7 @@
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Optional
+
 from fastapi import Security, Request, HTTPException, status
 from fastapi.security import APIKeyHeader
 
@@ -58,3 +62,41 @@ async def validate_device_has_telemetry(device_id: str, db: DatabaseManager) -> 
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No Telemetry data found for this Device: {device_id}"
         )
+
+async def validate_daterange(start_datetime: Optional[datetime], end_datetime: Optional[datetime]) -> list[datetime] | None:
+    @dataclass(frozen=True)
+    class DateRange:
+        start: datetime
+        end: datetime
+
+        def __post_init__(self) -> None:
+            if self.start > self.end:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="The start datetime is greater than the end datetime"
+                )
+
+        def to_list(self) -> list[datetime]:
+            return [self.start, self.end]
+
+    if start_datetime is None and end_datetime is None:
+        return None
+
+    start_datetime = start_datetime or datetime(2026, 1, 1, tzinfo=timezone.utc)
+    end_datetime = end_datetime or datetime.now(timezone.utc).replace(microsecond=0)
+
+    return DateRange(start_datetime, end_datetime).to_list()
+
+async def validate_device_has_battery(device_id: str, db: DatabaseManager) -> bool:
+    sql = """
+        SELECT has_battery
+        FROM devices
+        WHERE id = ?
+        LIMIT 1;
+    """
+    row = await db.fetch_one(sql, (device_id,))
+
+    if not row["has_battery"]:
+        return False
+
+    return True

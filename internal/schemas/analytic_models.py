@@ -1,12 +1,11 @@
 from datetime import datetime
-from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 
 # add only simple validation, because the model is only used for internal stuff
 class AnalyticsBase(BaseModel):
-    device_id: UUID = Field(
+    device_id: str = Field(
         default=...,
         description="The generated uuid for the Device, where the analytic data is from"
     )

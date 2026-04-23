@@ -1,11 +1,10 @@
 from datetime import datetime
-from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 
 class TelemetryBase(BaseModel):
-    device_id: UUID = Field(
+    device_id: str = Field(
         default=...,
         description="The generated uuid id for the Device, where the telemetry data is from",
         examples=["57f087ae-4b24-473d-bb52-9efeb1d36ba6"]
@@ -48,7 +47,7 @@ class TelemetryBase(BaseModel):
         description="The temperature of the Device, measured in Celcius",
         examples=[30.0, 23.4],
         ge=-20.0,
-        le=70.0
+        le=100.0
     )
 
     current_battery_percentage: float = Field(

@@ -1,5 +1,6 @@
 import logging
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Never
 
@@ -12,11 +13,15 @@ SCHEMAS = [CREATE_DEVICES_SQL, CREATE_TELEMETRY_SQL, CREATE_ANALYTICS_SQL, CREAT
 error_logger = logging.getLogger("Error")
 app_logger = logging.getLogger("App")
 
+def _adapt_datetime_utc(val: bytes) -> datetime:
+    return datetime.fromisoformat(val.decode()).replace(tzinfo=timezone.utc)
 
 class DatabaseManager:
     def __init__(self, db_path: str | Path) -> None:
         self.db_path = db_path
         self._connection: aiosqlite.Connection | None = None
+
+        sqlite3.register_converter("DATETIME", _adapt_datetime_utc)
 
     async def connect(self) -> None:
         try:

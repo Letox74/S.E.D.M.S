@@ -114,8 +114,10 @@ async def _calculate_other(
     last_reset = results[0]
     operation_hours = (datetime.now(timezone.utc) - last_reset).total_seconds() / 3600
 
-    energy_consumption = await _calculate_energy_consumption(power, timestamps)
-    efficiency_score = await _calculate_efficiency_score(results[1], operation_hours, power)
+    energy_consumption, efficiency_score = await asyncio.gather(
+        _calculate_energy_consumption(power, timestamps),
+        _calculate_efficiency_score(results[1], operation_hours, power)
+    )
 
     return {
         "last_reset": last_reset,

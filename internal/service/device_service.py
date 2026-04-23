@@ -246,7 +246,7 @@ async def db_set_device_status(device_id: str, status: str, db: DatabaseManager)
         WHERE id = ?
         RETURNING *;
     """
-    row = await db.execute_transaction(sql, (status, datetime.now(), device_id))
+    row = await db.execute_transaction(sql, (status, datetime.now(timezone.utc).replace(microsecond=0), device_id))
     await _update_status_log(device_id, status, db)
 
     return DeviceRead(**dict(row))
@@ -259,6 +259,6 @@ async def db_toggle_active(device_id: str, db: DatabaseManager) -> DeviceRead:
         WHERE id = ?
         RETURNING *;
     """
-    row = await db.execute_transaction(sql, (datetime.now(timezone.utc), device_id))
+    row = await db.execute_transaction(sql, (datetime.now(timezone.utc).replace(microsecond=0), device_id))
 
     return DeviceRead(**dict(row))
