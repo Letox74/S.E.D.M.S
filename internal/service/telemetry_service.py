@@ -14,18 +14,40 @@ error_logger = logging.getLogger("Error")
 
 
 # logic for the API Endpoints
+async def validate_cooldown(device_id: str, db: DatabaseManager) -> str | None:
+    COOLDOWN = timedelta(minutes=15)
+
+    latest_telemetry = await db_get_latest_telemetry(device_id, db)
+    if not latest_telemetry:
+        return None
+
+    time_since_last = datetime.now(timezone.utc) - latest_telemetry.timestamp
+
+    if time_since_last >= COOLDOWN:
+        return None
+
+    # calculate the time
+    remaining = COOLDOWN - time_since_last
+    remaining_total_seconds = remaining.total_seconds()
+
+    if remaining_total_seconds >= 60:
+        display_time = remaining_total_seconds / 60
+        unit = "minutes"
+    else:
+        display_time = remaining_total_seconds
+        unit = "seconds"
+
+    message =  (
+        f"Telemetry ingestion rejected for device {device_id} "
+        f"cooldown active {display_time:.2f} {unit} remaining"
+    )
+
+    telemetry_logger.info(message)
+    return message
+
 async def db_ingest_telemetry(data: TelemetryCreate, db: DatabaseManager) -> TelemetryRead | str:
-    cooldown = timedelta(minutes=15)
-    latest_telemetry = await db_get_latest_telemetry(data.device_id, db)
-
-    if latest_telemetry is not None:
-        time_since_last = datetime.now(timezone.utc) - latest_telemetry.timestamp
-        if time_since_last < cooldown:
-            # check if the last telemetry is 15 minutes or newer
-            message = f"Telemetry ingestion rejected for device {data.device_id} cooldown active {(cooldown - time_since_last).total_seconds()} seconds remaining"
-
-            telemetry_logger.info(message)
-            return message
+    message = await validate_cooldown(data.device_id, db)
+    if isinstance(message, str): return message
 
     fields = data.model_dump()  # to not type it manually
 

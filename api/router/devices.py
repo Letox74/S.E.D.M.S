@@ -3,7 +3,7 @@ import io
 from typing import Optional, Literal, Never
 from uuid import UUID
 
-from fastapi import APIRouter, status, Depends, Query, Path, Body
+from fastapi import APIRouter, status, Depends, Query, Path, Body, HTTPException
 from fastapi.responses import StreamingResponse
 
 from api.dependencies import get_db_session, validate_device_exists, validate_firmware_version_exists
@@ -45,6 +45,12 @@ async def create_device(
         data: DeviceCreate = Body(..., embed=True, description="The data needed to create the Device"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> DeviceRead:
+    if data.is_active and data.status != "online":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="is active cannot be true if the status is not online"
+        )
+
     return await device_service.db_create_device(data, db)
 
 
@@ -72,12 +78,13 @@ async def filter_devices(
         firmware_version: Optional[str] = Query(None, description="The firmware version of the Device (optional)", min_length=5, max_length=32),
         device_status: Optional[DeviceStatus] = Query(None, description="The Device Status (optional)"),
         is_active: Optional[bool] = Query(None, description="If the Device should be active (optional)"),
+        has_battery: Optional[bool] = Query(None, description="If the Device should have a battery (optional)"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> list[DeviceRead] | list[Never]:
     if firmware_version is not None:
         await validate_firmware_version_exists(firmware_version, db)
 
-    return await device_service.db_filter_devices(device_type, firmware_version, device_status, is_active, db)
+    return await device_service.db_filter_devices(device_type, firmware_version, device_status, is_active, has_battery, db)
 
 
 @device_router.get(
@@ -94,13 +101,13 @@ async def get_active_devices(
 
 @device_router.get(
     path="/stats/summary",
-    response_model=dict[str, int | dict[str, int] | list[str]],
+    response_model=dict[str, int | dict[str, int]],
     description="Get stats like total count or status distribution",
     status_code=status.HTTP_200_OK
 )
 async def get_device_stats(
         db: DatabaseManager = Depends(get_db_session)
-) -> dict[str, int | dict[str, int] | list[str]]:
+) -> dict[str, int | dict[str, int]]:
     return await device_service.db_get_device_stats(db)
 
 

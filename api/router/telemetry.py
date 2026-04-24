@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional, Literal, Never
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, status, Depends, Query, Path, BackgroundTasks, HTTPException
+from fastapi import APIRouter, status, Depends, Query, Path, Body, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse
 
 from api.dependencies import (
@@ -33,11 +33,11 @@ telemetry_router = APIRouter(
     status_code=status.HTTP_202_ACCEPTED
 )
 async def ingest_telemetry(
-        data: TelemetryCreate,
         bg_task: BackgroundTasks,
+        data: TelemetryCreate = Body(..., embed=True, description="The data needed to create the Telemetry"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> dict[str, str] | TelemetryRead:
-    if await validate_device_has_battery(data.device_id, db) and data.current_battery_percentage != -1:
+    if not await validate_device_has_battery(data.device_id, db) and data.current_battery_percentage != -1:
         data.current_battery_percentage = -1
 
     result = await telemetry_service.db_ingest_telemetry(data, db)

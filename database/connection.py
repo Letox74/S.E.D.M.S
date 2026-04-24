@@ -6,9 +6,16 @@ from typing import Never
 
 import aiosqlite
 
-from .models_sql import CREATE_DEVICES_SQL, CREATE_TELEMETRY_SQL, CREATE_ANALYTICS_SQL, CREATE_PREDICTIONS_SQL
+from .models_sql import (
+    CREATE_DEVICES_SQL,
+    CREATE_DEVICE_STATUS_LOG_SQL,
+    CREATE_TELEMETRY_SQL,
+    CREATE_ANALYTICS_SQL,
+    CREATE_PREDICTIONS_SQL
+)
 
-SCHEMAS = [CREATE_DEVICES_SQL, CREATE_TELEMETRY_SQL, CREATE_ANALYTICS_SQL, CREATE_PREDICTIONS_SQL]
+SCHEMAS = [CREATE_DEVICES_SQL, CREATE_DEVICE_STATUS_LOG_SQL, CREATE_TELEMETRY_SQL,
+           CREATE_ANALYTICS_SQL, CREATE_PREDICTIONS_SQL]
 
 error_logger = logging.getLogger("Error")
 app_logger = logging.getLogger("App")
@@ -75,7 +82,7 @@ class DatabaseManager:
 
             async with self._connection.execute(query, params) as cursor:
                 row_count = cursor.rowcount # how many rows were deleted, updated or inserted
-                self._connection.commit()
+                await self._connection.commit()
 
                 return row_count
 

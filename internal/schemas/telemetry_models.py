@@ -54,7 +54,7 @@ class TelemetryBase(BaseModel):
         default=-1.0,  # if the Device does not have a battery
         description="The current battery percentage of the Device",
         examples=[43.2, 76.9],
-        ge=0.0,
+        ge=-1.0,
         le=100.0
     )
 

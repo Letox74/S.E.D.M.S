@@ -49,6 +49,16 @@ async def validate_firmware_version_exists(firmware_version: str, db: DatabaseMa
         )
 
 
+async def validate_status_with_is_active(
+        device_id: Optional[str],
+        device_status: str,
+        is_active: bool,
+        db: DatabaseManager
+)-> None:
+    if device_id:
+        pass
+
+
 # Telemetry Dependencies
 async def validate_device_has_telemetry(device_id: str, db: DatabaseManager) -> None:
     result = await db.fetch_one("""

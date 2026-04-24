@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 from typing import Never, Optional
 from uuid import uuid4
 
+from fastapi import HTTPException, status
+
 from database.connection import DatabaseManager
 from internal.schemas.device_models import DeviceRead, DeviceCreate, DeviceUpdate
 
@@ -13,7 +15,7 @@ error_logger = logging.getLogger("Error")
 
 
 # device status log service
-async def get_last_status_timestamp(device_id: str, status: str, db: DatabaseManager) -> datetime:
+async def get_last_status_timestamp(device_id: str, device_status: str, db: DatabaseManager) -> datetime:
     sql = """
         SELECT timestamp
         FROM device_status_log
@@ -22,23 +24,28 @@ async def get_last_status_timestamp(device_id: str, status: str, db: DatabaseMan
         ORDER BY timestamp DESC
         LIMIT 1;
     """
-    row = await db.fetch_one(sql, (device_id, status))
-    timestamp_value = row["timestamp"]
+    row = await db.fetch_one(sql, (device_id, device_status))
+    if not row:
+        device = await db_get_device(device_id, db)
+        timestamp = device.created_at
 
-    return datetime.fromisoformat(timestamp_value) if isinstance(timestamp_value, str) else timestamp_value
+    else:
+        timestamp = row["timestamp"]
+
+    return timestamp
 
 
-async def _update_status_log(device_id: str, status: str, db: DatabaseManager) -> None:
+async def _update_status_log(device_id: str, device_status: str, db: DatabaseManager) -> None:
     sql = """
         INSERT INTO device_status_log
         (device_id, status)
-        VALUES (?, ?)
+        VALUES (?, ?);
     """
-    await db.execute_transaction(sql, (device_id, status))
+    await db.execute_transaction(sql, (device_id, device_status))
 
 
 async def db_get_all_devices(db: DatabaseManager) -> list[DeviceRead] | list[Never]:
-    sql = """
+    sql = f"""
         SELECT * 
         FROM devices;
     """
@@ -65,6 +72,9 @@ async def db_create_device(data: DeviceCreate, db: DatabaseManager) -> DeviceRea
     row = await db.execute_transaction(sql, values)  # retrieve the entire row (due to RETURNING *)
     app_logger.info(f"New Device registered: {fields["id"]} of type {fields["type"]}")
 
+    # insert status into the status log
+    await _update_status_log(fields["id"], fields["status"], db)
+
     return DeviceRead(**dict(row))
 
 
@@ -90,15 +100,17 @@ async def db_search_devices(q: str, db: DatabaseManager) -> list[DeviceRead] | l
 async def db_filter_devices(
         type_: Optional[str],
         firmware_version: Optional[str],
-        status: Optional[str],
+        device_status: Optional[str],
         is_active: Optional[bool],
+        has_battery: Optional[bool],
         db: DatabaseManager
 ) -> list[DeviceRead] | list[Never]:
     filters = {
         "type": type_,
         "firmware_version": firmware_version,
-        "status": status,
-        "is_active": is_active
+        "status": device_status,
+        "is_active": is_active,
+        "has_battery": has_battery
     }
     active_filters = {key: value for key, value in filters.items() if value is not None}  # only the selected filters
 
@@ -130,7 +142,7 @@ async def db_get_active_devices(db: DatabaseManager) -> list[DeviceRead] | list[
     return [DeviceRead(**dict(row)) for row in rows]
 
 
-async def db_get_device_stats(db: DatabaseManager) -> dict[str, int | dict[str, int] | list[str]]:
+async def db_get_device_stats(db: DatabaseManager) -> dict[str, int | dict[str, int]]:
     # sql queries
     sql_total_count = """
         SELECT 
@@ -161,7 +173,8 @@ async def db_get_device_stats(db: DatabaseManager) -> dict[str, int | dict[str, 
     """
     sql_firmware_stats = """
         SELECT 
-            firmware_version AS version 
+            firmware_version        AS version,
+            COUNT(firmware_version) AS count
         FROM devices
         GROUP BY firmware_version 
         ORDER BY COUNT(id) DESC;
@@ -187,7 +200,7 @@ async def db_get_device_stats(db: DatabaseManager) -> dict[str, int | dict[str, 
         "active_count": active_count["count"],
         "status_distribution": {row["status"]: row["count"] for row in status_distribution},
         "type_distribution": {row["type"]: row["count"] for row in type_distribution},
-        "firmware_stats": [row["version"] for row in firmware_stats]
+        "firmware_stats": {row["version"]: row["count"] for row in firmware_stats}
     }
 
 
@@ -208,6 +221,12 @@ async def db_update_device(device_id: str, data: DeviceUpdate, db: DatabaseManag
 
     if "status" in changes.keys():
         await _update_status_log(device_id, changes["status"], db)
+
+        if changes.get("is_active") and changes["status"] != "online":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="cannot change if is active is true and the status is not online"
+            )
 
     if not changes:
         return old_device

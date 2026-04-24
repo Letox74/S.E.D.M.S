@@ -13,6 +13,7 @@ from internal.service.device_service import get_last_status_timestamp
 async def calculate_statistics(data: list[TelemetryRead], db: DatabaseManager) -> AnalyticsCreate:
     power = [round(telemetry.voltage * telemetry.current, 2) for telemetry in data]
     timestamps = [telemetry.timestamp for telemetry in data]
+    device_id = data[0].device_id
 
     results = await asyncio.gather(
         _calculate_power(power),
@@ -23,7 +24,8 @@ async def calculate_statistics(data: list[TelemetryRead], db: DatabaseManager) -
         _calculate_battery([telemetry.current_battery_percentage for telemetry in data])
     )
     other_results = await _calculate_other(str(data[0].device_id), power, timestamps, db)
-    results_dict = reduce(lambda a, b: a | b, results, other_results)
+    other_dict = {"device_id": device_id} | other_results
+    results_dict = reduce(lambda a, b: a | b, results, other_dict)
 
     return AnalyticsCreate(**results_dict)
 
@@ -111,7 +113,7 @@ async def _calculate_other(
         get_last_status_timestamp(device_id, "online", db),
         _db_helper_error_count(device_id, timestamps[0], db)
     )
-    last_reset = results[0]
+    last_reset = results[0].replace(microsecond=0)
     operation_hours = (datetime.now(timezone.utc) - last_reset).total_seconds() / 3600
 
     energy_consumption, efficiency_score = await asyncio.gather(
@@ -121,7 +123,7 @@ async def _calculate_other(
 
     return {
         "last_reset": last_reset,
-        "operation_hours": operation_hours,
-        "energy_consumption": energy_consumption,
-        "efficiency_score": efficiency_score
+        "operation_hours": round(operation_hours, 2),
+        "energy_consumption": round(energy_consumption, 2),
+        "efficiency_score": round(efficiency_score, 2)
     }

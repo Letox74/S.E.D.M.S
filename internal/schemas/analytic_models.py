@@ -118,8 +118,8 @@ class AnalyticsBase(BaseModel):
     std_signal_strength: float = Field(
         default=...,
         description="The standard devitation singal strength of the Device, measured in decibel milliwatt (dBm)",
-        ge=-140.0,
-        le=0.0
+        ge=0.0,
+        le=140.0
     )
 
     avg_temperature: float = Field(
@@ -168,7 +168,7 @@ class AnalyticsBase(BaseModel):
         default=...,
         description="How efficient the Device in percentage",
         ge=0,
-        le=1
+        le=100
     )
 
     energy_consumption: float = Field(
