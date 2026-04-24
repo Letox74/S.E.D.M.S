@@ -39,7 +39,7 @@ async def ingest_telemetry(
 ) -> dict[str, str] | TelemetryRead:
     if await validate_device_has_battery(data.device_id, db) and data.current_battery_percentage != -1:
         data.current_battery_percentage = -1
-    
+
     result = await telemetry_service.db_ingest_telemetry(data, db)
 
     if isinstance(result, str):
@@ -48,7 +48,7 @@ async def ingest_telemetry(
             detail=result
         )
 
-    bg_task.add_task(telemetry_service.process_analytic_calculations, str(uuid4()), str(data.device_id), db)
+    bg_task.add_task(telemetry_service.process_analytic_calculations, str(uuid4()), data.device_id, db)
     return result
 
 
