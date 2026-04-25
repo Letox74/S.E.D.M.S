@@ -208,13 +208,16 @@ async def delete_device(
 @device_router.post(
     path="/bulk",
     response_model=list[DeviceRead],
-    description="Register multiple Devices at the same time",
+    description="Register multiple Devices at the same time (limit 50, if the more than 50 Devices are given, only the first 50 are taken)",
     status_code=status.HTTP_201_CREATED
 )
 async def bulk_register(
         data: list[DeviceCreate] = Body(..., embed=True, description="The data needed to create the Devices"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> list[DeviceRead]:
+    if len(data) > 50:
+        data = data[:50]
+
     return await device_service.db_bulk_register(data, db)
 
 
