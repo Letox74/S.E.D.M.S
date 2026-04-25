@@ -232,7 +232,7 @@ async def db_update_device(device_id: str, data: DeviceUpdate, db: DatabaseManag
         return old_device
 
     # prepare sql string
-    changes = {**changes, **{"modified_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")}}
+    changes = {**changes, **{"modified_at": datetime.fromisoformat(datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"))}}
     set_clause = ", ".join(f"{key} = ?" for key in changes)
     values = tuple(changes.values()) + (device_id,)  # add device id (WHERE clause)
 
