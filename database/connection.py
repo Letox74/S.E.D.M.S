@@ -28,10 +28,10 @@ class DatabaseManager:
         self.db_path = db_path
         self._connection: aiosqlite.Connection | None = None
 
-        sqlite3.register_converter("DATETIME", _adapt_datetime_utc)
-
     async def connect(self) -> None:
         try:
+            sqlite3.register_converter("DATETIME", _adapt_datetime_utc)
+
             self._connection = await aiosqlite.connect(self.db_path, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
             self._connection.row_factory = aiosqlite.Row  # enable Row factory to access columns by name
 

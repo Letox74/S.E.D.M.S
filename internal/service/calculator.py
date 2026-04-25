@@ -113,7 +113,7 @@ async def _calculate_other(
         get_last_status_timestamp(device_id, "online", db),
         _db_helper_error_count(device_id, timestamps[0], db)
     )
-    last_reset = datetime.fromisoformat(results[0].strftime("%Y-%m-%d %H:%M:%S"))
+    last_reset = results[0]
     operation_hours = (datetime.now(timezone.utc) - last_reset).total_seconds() / 3600
 
     energy_consumption, efficiency_score = await asyncio.gather(
