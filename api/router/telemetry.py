@@ -167,7 +167,7 @@ async def get_global_telemetry_stats(
         start_datetime: Optional[datetime] = Query(default=None, description="The start datetime"),
         end_datetime: Optional[datetime] = Query(default=None, description="The end datetime"),
         db: DatabaseManager = Depends(get_db_session)
-) -> dict[str, int | str | dict[str, float | str]]:
+) -> dict[str, int | str | dict[str, float | str]] | dict[str, str]:
     daterange = await validate_daterange(start_datetime, end_datetime)
 
     return await telemetry_service.db_get_telmetry_stats(None, daterange, db)

@@ -6,10 +6,12 @@ CREATE_DEVICES_SQL = """
             firmware_version TEXT NOT NULL,
             description TEXT,
             status TEXT DEFAULT 'online',
+            location TEXT NOT NULL,
             is_active BOOLEAN NOT NULL DEFAULT 1,
             has_battery BOOLEAN NOT NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            modified_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            modified_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(name, location)
         );
 """
 # both timestamps are UTC time

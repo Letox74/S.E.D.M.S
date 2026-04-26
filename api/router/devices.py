@@ -45,13 +45,21 @@ async def create_device(
         data: DeviceCreate = Body(..., embed=True, description="The data needed to create the Device"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> DeviceRead:
-    if data.is_active and data.status != "online":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="is active cannot be true if the status is not online"
-        )
-
     return await device_service.db_create_device(data, db)
+
+
+@device_router.get(
+    path="/name-and-loc",
+    response_model=DeviceRead,
+    description="Gets a Device with the name and the location",
+    status_code=status.HTTP_200_OK
+)
+async def get_device_per_name_and_location(
+        name: str = Query(default=..., min_length=3, max_length=20, description="The name of the Device"),
+        location: str = Query(default=..., min_length=2, max_length=30, description="The location of the Device"),
+        db: DatabaseManager = Depends(get_db_session)
+) -> DeviceRead | None:
+    return await device_service.db_get_device_by_name_and_location(name, location, db)
 
 
 @device_router.get(

@@ -30,7 +30,7 @@ async def calculate_statistics(data: list[TelemetryRead], db: DatabaseManager) -
     return AnalyticsCreate(**results_dict)
 
 
-async def _helper_calculate(name, data: list[float]) -> dict[str, float]:
+def _helper_calculate(name, data: list[float]) -> dict[str, float]:
     return {
         f"avg_{name}": round(float(np.mean(data)), 2),
         f"peak_{name}": round(float(np.max(data)), 2),
@@ -40,23 +40,23 @@ async def _helper_calculate(name, data: list[float]) -> dict[str, float]:
 
 
 async def _calculate_power(data: list[float]) -> dict[str, float]:
-    return await _helper_calculate("power", data)
+    return _helper_calculate("power", data)
 
 
 async def _calculate_voltage(data: list[float]) -> dict[str, float]:
-    return await _helper_calculate("voltage", data)
+    return _helper_calculate("voltage", data)
 
 
 async def _calculate_current(data: list[float]) -> dict[str, float]:
-    return await _helper_calculate("current", data)
+    return _helper_calculate("current", data)
 
 
 async def _calculate_signal_strength(data: list[float]) -> dict[str, float]:
-    return await _helper_calculate("signal_strength", data)
+    return _helper_calculate("signal_strength", data)
 
 
 async def _calculate_temperature(data: list[float]) -> dict[str, float]:
-    return await _helper_calculate("temperature", data)
+    return _helper_calculate("temperature", data)
 
 
 async def _calculate_battery(data: list[float]) -> dict[str, float]:

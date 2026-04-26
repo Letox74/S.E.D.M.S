@@ -20,11 +20,11 @@ class DeviceTypes(str, Enum):
     CO2_MONITOR = "co2_monitor"  # measures the concentraction of carbon dioxide in the air to ensure proper indoor air quality
     MOTION_DETECTOR = "motion_detector"  # uses PIR or microwave technology to sense movement, typically for security or lightning control
     SMOKE_DETECTOR = "smoke_detector"  # senses smoke or combustion particles to provide an early warning of potential fire hazards
-    PH_SENSOR = "ph_sensor"  # measures the acidity or alkalinty of a liquid, essential for water treatment and chemical precesses
     VALVE_ACTUATOR = "valve_actuator"  # a mechanical device for opening and closing a valve, allowing remote control of fluid flow
+    SMART_PLUG = "smart_plug"  # for normal home appliances (for example washing machine or refrigerator
 
     @classmethod
-    async def values(cls) -> list[str]:
+    def values(cls) -> list[str]:
         return [enum.value for enum in cls]
 
 
@@ -36,7 +36,7 @@ class DeviceStatus(str, Enum):
     ERROR = "error"
 
     @classmethod
-    async def values(cls) -> list[str]:
+    def values(cls) -> list[str]:
         return [enum.value for enum in cls]
 
 
@@ -71,6 +71,13 @@ class DeviceBase(BaseModel):
     status: Optional[DeviceStatus] = Field(
         default="online",
         description="The current status of Device"
+    )
+
+    location: str = Field(
+        default=...,
+        description="Where the Device is located",
+        min_length=2,
+        max_length=30
     )
 
 

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -203,4 +204,18 @@ class AnalyticsRead(AnalyticsBase):
     timestamp: datetime = Field(
         default=...,
         description="When the analytic data was recorded"
+    )
+
+    device_name: Optional[str] = Field(
+        default=None,
+        description="The name of the Device",
+        min_length=3,
+        max_length=20
+    )
+
+    device_location: Optional[str] = Field(
+        default=None,
+        description="Where the Device is located",
+        min_length=2,
+        max_length=30
     )

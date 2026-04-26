@@ -34,6 +34,8 @@ ALLOWED_HEADERS: list[str] | list[Never] = ["*"]
 DEFAULT_RATE_LIMIT: str = "35/minute"
 ACTIVATE_RATE_LIMITS: bool = True
 
+# Telemetry
+TELEMETRY_LIMIT: int = 1 # in minutes
 
 # ml stuff (soon, just examples)
 IS_RETRAINING: bool = False

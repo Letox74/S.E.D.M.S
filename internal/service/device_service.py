@@ -13,7 +13,6 @@ app_logger = logging.getLogger("App")
 error_logger = logging.getLogger("Error")
 
 
-
 # device status log service
 async def get_last_status_timestamp(device_id: str, device_status: str, db: DatabaseManager) -> datetime:
     sql = """
@@ -258,15 +257,15 @@ async def db_delete_device(device_id: str, db: DatabaseManager) -> None:
     return None
 
 
-async def db_set_device_status(device_id: str, status: str, db: DatabaseManager) -> DeviceRead:
+async def db_set_device_status(device_id: str, device_status: str, db: DatabaseManager) -> DeviceRead:
     sql = """
         UPDATE devices
         SET status = ?, modified_at = ?
         WHERE id = ?
         RETURNING *;
     """
-    row = await db.execute_transaction(sql, (status, datetime.now(timezone.utc).replace(microsecond=0), device_id))
-    await _update_status_log(device_id, status, db)
+    row = await db.execute_transaction(sql, (device_status, datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"), device_id))
+    await _update_status_log(device_id, device_status, db)
 
     return DeviceRead(**dict(row))
 
@@ -281,3 +280,15 @@ async def db_toggle_active(device_id: str, db: DatabaseManager) -> DeviceRead:
     row = await db.execute_transaction(sql, (datetime.now(timezone.utc).replace(microsecond=0), device_id))
 
     return DeviceRead(**dict(row))
+
+
+async def db_get_device_by_name_and_location(name: str, location: str, db: DatabaseManager) -> DeviceRead | None:
+    sql = """
+        SELECT *
+        FROM devices
+        WHERE name = ? COLLATE NOCASE
+            AND location = ? COLLATE NOCASE;
+    """
+    row = await db.fetch_one(sql, (name, location))
+    
+    return DeviceRead(**dict(row)) if row else None
