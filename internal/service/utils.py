@@ -1,14 +1,16 @@
 """
 utils because there the same endpoints on telemetry and analytics
 """
-from ..schemas.analytic_models import AnalyticsRead, AnalyticsCreate
-from ..schemas.telemetry_models import TelemetryRead, TelemetryCreate
-from ..schemas.device_models import DeviceRead, DeviceCreate
-from database.connection import DatabaseManager
 import logging
-from aiosqlite import Row
-from typing import Optional, Never
 from datetime import datetime
+from typing import Optional, Never
+
+from aiosqlite import Row
+
+from database.connection import DatabaseManager
+from ..schemas.analytic_models import AnalyticsRead, AnalyticsCreate
+from ..schemas.device_models import DeviceRead, DeviceCreate
+from ..schemas.telemetry_models import TelemetryRead, TelemetryCreate
 
 app_logger = logging.getLogger("App")
 telemetry_logger = logging.getLogger("Telemetry")
@@ -58,8 +60,11 @@ async def db_insert_new_row(
 
 
 # methods for telemetry and analytics
-async def db_get_latest_row(device_id: str, table_name: str,
-                            db: DatabaseManager) -> TelemetryRead | AnalyticsRead | None:
+async def db_get_latest_row(
+        device_id: str,
+        table_name: str,
+        db: DatabaseManager
+) -> TelemetryRead | AnalyticsRead | None:
     sql = f"""
         SELECT *
         FROM {table_name}

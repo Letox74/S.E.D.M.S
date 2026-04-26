@@ -1,5 +1,3 @@
-import csv
-import io
 from datetime import datetime
 from typing import Optional, Literal, Never
 from uuid import UUID, uuid4
@@ -20,6 +18,7 @@ from internal.schemas.telemetry_models import (
     TelemetryRead
 )
 from internal.service import telemetry_service
+from .utils import to_csv
 
 telemetry_router = APIRouter(
     prefix="/telemetry",
@@ -64,6 +63,7 @@ async def get_latest_teemetry(
 ) -> TelemetryRead:
     await validate_device_exists(str(device_id), db)
     await validate_device_has_telemetry(str(device_id), db)
+
     return await telemetry_service.db_get_latest_telemetry(str(device_id), db)
 
 
@@ -77,14 +77,14 @@ async def get_telemetry_history(
         device_id: UUID = Path(default=..., description="The Device ID"),
         start_datetime: Optional[datetime] = Query(default=None, description="The start datetime"),
         end_datetime: Optional[datetime] = Query(default=None, description="The end datetime"),
-        limit: Optional[int] = Query(default=None, description="A optional limit"),
+        limit: Optional[int] = Query(default=20, ge=0, description="A optional limit"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> list[TelemetryRead]:
     await validate_device_exists(str(device_id), db)
     await validate_device_has_telemetry(str(device_id), db)
-    result = await validate_daterange(start_datetime, end_datetime)
+    daterange = await validate_daterange(start_datetime, end_datetime)
 
-    return await telemetry_service.db_get_telemetry_history(str(device_id), result, limit, db)
+    return await telemetry_service.db_get_telemetry_history(str(device_id), daterange, limit, db)
 
 
 @telemetry_router.get(
@@ -101,9 +101,9 @@ async def get_telemetry_range(
 ) -> list[TelemetryRead]:
     await validate_device_exists(str(device_id), db)
     await validate_device_has_telemetry(str(device_id), db)
-    result = await validate_daterange(start_datetime, end_datetime)
+    daterange = await validate_daterange(start_datetime, end_datetime)
 
-    return await telemetry_service.db_get_telemetry_range(str(device_id), result, db)
+    return await telemetry_service.db_get_telemetry_range(str(device_id), daterange, db)
 
 
 @telemetry_router.delete(
@@ -114,7 +114,7 @@ async def get_telemetry_range(
 async def clear_telemetry(
         device_id: UUID = Path(default=..., description="The Device ID"),
         before: Optional[datetime] = Query(default=None, description="Only clear before this datetime"),
-        limit: Optional[int] = Query(default=None, description="A optional limit"),
+        limit: Optional[int] = Query(default=50, ge=0, description="A optional limit"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> dict[str, str | int]:
     await validate_device_exists(str(device_id), db)
@@ -135,9 +135,9 @@ async def get_telemetry_count(
 ) -> dict[str, str | int]:
     await validate_device_exists(str(device_id), db)
     await validate_device_has_telemetry(str(device_id), db)
-    result = await telemetry_service.db_telemetry_count(str(device_id), db)
+    count = await telemetry_service.db_telemetry_count(str(device_id), db)
 
-    return {"device_id": str(device_id), "count": result}
+    return {"device_id": str(device_id), "count": count}
 
 
 @telemetry_router.get(
@@ -212,27 +212,20 @@ async def export_device_telemetry(
         device_id: UUID = Path(default=..., description="The Device ID"),
         start_datetime: Optional[datetime] = Query(default=None, description="The start datetime"),
         end_datetime: Optional[datetime] = Query(default=None, description="The end datetime"),
+        limit: Optional[int] = Query(default=None, ge=0, description="A limit"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> list[TelemetryRead] | list[Never] | StreamingResponse:
     await validate_device_exists(str(device_id), db)
     await validate_device_has_telemetry(str(device_id), db)
     daterange = await validate_daterange(start_datetime, end_datetime)
 
-    data = await telemetry_service.db_get_telemetry_history(str(device_id), daterange, None, db)
+    data = await telemetry_service.db_get_telemetry_history(str(device_id), daterange, limit, db)
 
     if not data:
         return []
 
     if file_format == "csv":
-        data = [model.model_dump() for model in data]
-
-        output = io.StringIO()
-        writer = csv.DictWriter(output, fieldnames=data[0].keys())
-        writer.writeheader()
-        writer.writerows(data)
-        output.seek(0)
-
-        return StreamingResponse(output, media_type="text/csv")
+        return to_csv(data)
 
     return data
 
@@ -247,23 +240,16 @@ async def export_all_telemetry(
         file_format: Literal["json", "csv"] = Query(default="json", description="The format of the returned data"),
         start_datetime: Optional[datetime] = Query(default=None, description="The start datetime"),
         end_datetime: Optional[datetime] = Query(default=None, description="The end datetime"),
+        limit: Optional[int] = Query(default=None, ge=0, description="A limit"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> list[TelemetryRead] | list[Never] | StreamingResponse:
     daterange = await validate_daterange(start_datetime, end_datetime)
-    data = await telemetry_service.db_get_telemetry_history(None, daterange, None, db)
+    data = await telemetry_service.db_get_telemetry_history(None, daterange, limit, db)
 
     if not data:
         return []
 
     if file_format == "csv":
-        data = [model.model_dump() for model in data]
-
-        output = io.StringIO()
-        writer = csv.DictWriter(output, fieldnames=data[0].keys())
-        writer.writeheader()
-        writer.writerows(data)
-        output.seek(0)
-
-        return StreamingResponse(output, media_type="text/csv")
+        return to_csv(data)
 
     return data

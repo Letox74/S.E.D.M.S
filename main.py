@@ -6,7 +6,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from api.dependencies import api_key_auth
 from api.limiter import limiter, rate_limit_exceeded_handler
 from api.middleware.audit import AuditMiddleware
-from api.router import device_router, telemetry_router
+from api.router import device_router, telemetry_router, analytics_router
 from core.config import (
     VERSION,
     DOCS_URL,
@@ -58,3 +58,4 @@ app.add_middleware(AuditMiddleware)
 # include routers
 app.include_router(device_router, prefix="/sedms/api")
 app.include_router(telemetry_router, prefix="/sedms/api")
+app.include_router(analytics_router, prefix="/sedms/api")

@@ -88,6 +88,7 @@ async def validate_daterange(start_datetime: Optional[datetime], end_datetime: O
 
     return _DateRange(start_datetime, end_datetime).to_list()
 
+
 async def validate_device_has_battery(device_id: str, db: DatabaseManager) -> bool:
     sql = """
         SELECT has_battery
@@ -101,3 +102,18 @@ async def validate_device_has_battery(device_id: str, db: DatabaseManager) -> bo
         return False
 
     return True
+
+
+# Analytics stuff
+async def validate_device_has_analytics(device_id: str, db: DatabaseManager) -> None:
+    result = await db.fetch_one("""
+        SELECT 1
+        FROM analytics
+        WHERE device_id = ?
+    """, (device_id,))
+
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No Analytic data found for this Device: {device_id}"
+        )

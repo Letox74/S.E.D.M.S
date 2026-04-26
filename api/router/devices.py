@@ -1,9 +1,7 @@
-import csv
-import io
 from typing import Optional, Literal, Never
 from uuid import UUID
 
-from fastapi import APIRouter, status, Depends, Query, Path, Body, HTTPException
+from fastapi import APIRouter, status, Depends, Query, Path, Body
 from fastapi.responses import StreamingResponse
 
 from api.dependencies import get_db_session, validate_device_exists, validate_firmware_version_exists
@@ -16,6 +14,7 @@ from internal.schemas.device_models import (
     DeviceRead
 )
 from internal.service import device_service
+from .utils import to_csv
 
 device_router = APIRouter(
     prefix="/devices",
@@ -155,15 +154,7 @@ async def export_devices(
         return []
 
     if file_format == "csv":
-        data = [model.model_dump() for model in data]
-
-        output = io.StringIO()
-        writer = csv.DictWriter(output, fieldnames=data[0].keys())
-        writer.writeheader()
-        writer.writerows(data)
-        output.seek(0)
-
-        return StreamingResponse(output, media_type="text/csv")
+        return to_csv(data)
 
     return data
 

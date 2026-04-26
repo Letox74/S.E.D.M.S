@@ -1,10 +1,10 @@
 import logging
-
+from datetime import datetime, date, timezone, time, timedelta
 from enum import Enum
+from typing import Optional, Never
+
 from database.connection import DatabaseManager
 from internal.schemas.analytic_models import AnalyticsCreate, AnalyticsRead
-from typing import Optional, Never
-from datetime import datetime, date, timezone, time, timedelta
 from .utils import (
     db_insert_new_row,
     db_get_latest_row,
@@ -57,9 +57,12 @@ async def db_analytics_count(device_id: str, db: DatabaseManager) -> int:
 
 async def db_get_daily_summary(
         device_id: Optional[str],
-        summary_date: date,
+        summary_date: Optional[date],
         db: DatabaseManager
 ) -> dict[str, str | float | int] | None:
+    if summary_date is None:
+        summary_date = date.today()
+
     start_dt = datetime.combine(summary_date, time.min, timezone.utc)
     end_dt = datetime.combine(summary_date, time.max, timezone.utc)
     params = tuple([param for param in (device_id, start_dt, end_dt, device_id) if param])
@@ -133,8 +136,8 @@ def _get_alerts_sql(where_str: str) -> str:
     sql = f"""
         SELECT 
             T01.*,
-            T02.name,
-            T02.location
+            T02.name     AS device_name,
+            T02.location AS device_location
         FROM analytics AS T01
         JOIN devices AS T02 ON T01.device_id = T02.id
         {where_str}
@@ -153,7 +156,7 @@ def _alert_fetcher(mode: _AlertMode, std_name: Optional[str] = None):
             threshold: float,
             after: Optional[datetime],
             db: DatabaseManager,
-    ) -> list[AnalyticsRead]:
+    ) -> list[AnalyticsRead] | list[Never]:
         after = after or datetime.now(timezone.utc) - timedelta(hours=1)
 
         kwargs = {
@@ -180,26 +183,32 @@ db_alerts_std_temperature = _alert_fetcher(_AlertMode.STD, "std_temperature")
 
 
 def _ranking_fetcher(column: str):
-    async def fetcher(after: Optional[datetime], db: DatabaseManager) -> dict[str, dict[str, float]]:
+    async def fetcher(
+            after: Optional[datetime],
+            limit: Optional[int],
+            db: DatabaseManager
+    ) -> list[AnalyticsRead] | list[Never]:
         after = after or datetime.now(timezone.utc) - timedelta(hours=1)
+        params = tuple([param for param in (after, limit) if param])
 
         sql = f"""
             SELECT
-                T01.{column},
-                T02.name,
-                T02.location
+                T01.*,
+                T02.name     AS device_name,
+                T02.location AS device_location
             
             FROM analytics AS T01
             JOIN devices AS T02 ON T01.device_id = T01.id
             WHERE timestamp > ?
-            ORDER BY {column} DESC;
+            ORDER BY {column} DESC
+            {"LIMIT ?" if limit else ""};
         """
-        rows = await db.fetch_all(sql, (after,))
+        rows = await db.fetch_all(sql, params)
 
-        return {row["name"]: {"location": row["location"], "value": row[column]} for row in rows}
+        return [AnalyticsRead(**dict(row)) for row in rows]
 
     return fetcher
 
 
 db_ranking_efficiency = _ranking_fetcher("efficiency_score")
-db_ranking_conumption = _ranking_fetcher("energy_consumption")
+db_ranking_consumption = _ranking_fetcher("energy_consumption")
