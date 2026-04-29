@@ -156,8 +156,12 @@ async def db_delete(
 async def db_count(device_id: str, table_name: str, db: DatabaseManager) -> int:
     sql = f"""
         SELECT
-            COUNT(*) AS count
-        FROM {table_name}
+            COUNT(T01.*) AS count,
+            T02.name     AS device_name,
+            T02.location AS device_location
+            
+        FROM {table_name} AS T01
+        JOIN devcies AS T02 ON T01.device_id = T02.id
         WHERE device_id = ?;
     """
     row = await db.fetch_one(sql, (device_id,))

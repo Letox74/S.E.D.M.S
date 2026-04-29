@@ -1,12 +1,11 @@
 from datetime import datetime
 from typing import Optional
-from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 
 class PredictionBase(BaseModel):
-    device_id: UUID = Field(
+    device_id: str = Field(
         default=...,
         description="The generated uuid for the Device, where the prediction data is from"
     )
@@ -14,13 +13,13 @@ class PredictionBase(BaseModel):
     predicted_load: float = Field(
         default=...,
         description="The predicted power consumption in Watts over the next X hours",
-        ge=0.0
+        ge=0
     )
 
     actual_load: Optional[float] = Field(
         default=None,
         description="The actual power consumption in Watts",
-        ge=0.0
+        ge=0
     )
 
     prediction_error: Optional[float] = Field(  # calculated by actual_load - predicted_load
@@ -31,13 +30,20 @@ class PredictionBase(BaseModel):
     anomaly_score: float = Field(
         default=...,
         description="How confident the model is with the prediction (0 very confident, 1 complete anomaly)",
-        ge=0.0,
-        le=1.0
+        ge=0,
+        le=1
     )
 
     is_anomaly: bool = Field(
         default=...,
         description="If it the prediction is anomaly, by a Threshold",
+    )
+
+    confidence: float = Field(
+        default=...,
+        description="How confident the model is",
+        ge=0,
+        le=100
     )
 
     feature_importance: str = Field(

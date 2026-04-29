@@ -15,48 +15,48 @@ class TelemetryBase(BaseModel):
         default=...,
         description="The current voltage of the Device, measured in Volts",
         examples=[230.5, 400.0],
-        ge=0.0,
-        le=500.0
+        ge=0,
+        le=500
     )
 
     current: float = Field(
         default=...,
         description="The electric current, measured in Ampere",
         examples=[12.4],
-        ge=0.0,
-        le=100.0
+        ge=0,
+        le=100
     )
 
     signal_strength: float = Field(
         default=...,
         description="Received signal strength indicator in dBm. Values closer to 0 indicate a stronger signal",
         examples=[-65.5],
-        ge=-140.0,
-        le=0.0
+        ge=-140,
+        le=0
     )
 
     frequency: float = Field(
         default=...,
         description="Grid frequency in Hertz",
         examples=[50.0],
-        ge=45.0,
-        le=65.0
+        ge=45,
+        le=65
     )
 
     temperature: float = Field(
         default=...,
         description="The temperature of the Device, measured in Celcius",
         examples=[30.0, 23.4],
-        ge=-20.0,
-        le=100.0
+        ge=-20,
+        le=100
     )
 
     current_battery_percentage: float = Field(
         default=-1.0,  # if the Device does not have a battery
         description="The current battery percentage of the Device",
         examples=[43.2, 76.9],
-        ge=-1.0,
-        le=100.0
+        ge=-1,
+        le=100
     )
 
 

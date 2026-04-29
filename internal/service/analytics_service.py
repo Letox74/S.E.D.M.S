@@ -69,24 +69,24 @@ async def db_get_daily_summary(
 
     sql = f"""
         SELECT 
-            ROUND(AVG(T01.avg_power, 2))           AS avg_power,
-            ROUND(AVG(T01.avg_voltage, 2)          AS avg_voltage,
-            ROUND(AVG(T01.avg_current, 2)          AS avg_current,
-            ROUND(AVG(T01.avg_signal_strength, 2)  AS avg_signal_strength,
-            ROUND(AVG(T01.avg_temperature, 2)      AS avg_temperature,
-            ROUND(AVG(T01.avg_efficiency_score, 2) AS avg_efficiency,
+            ROUND(AVG(T02.avg_power), 2)            AS avg_power,
+            ROUND(AVG(T02.avg_voltage), 2)          AS avg_voltage,
+            ROUND(AVG(T02.avg_current), 2)          AS avg_current,
+            ROUND(AVG(T02.avg_signal_strength), 2)  AS avg_signal_strength,
+            ROUND(AVG(T02.avg_temperature), 2)      AS avg_temperature,
+            ROUND(AVG(T02.efficiency_score), 2) AS avg_efficiency,
             
-            SUM(T01.energy_consumption) / 1000     AS total_energy_kwh,
+            ROUND(SUM(T02.energy_consumption) / 1000, 2)     AS total_energy_kwh,
             
             (
-                SELECT COUNT(DISTINCT T02.device_id)
+                SELECT COUNT(DISTINCT T01.device_id)
                 FROM analytics AS T01
-                {"WHERE device_id = ?" if device_id else ""}
+                {"WHERE T01.device_id = ?" if device_id else ""}
             ) AS device_count
             
-        FROM analytics AS T01
-        WHERE T01.timestamp BETWEEN ? AND ?
-        {"AND T01.device_id = ?" if device_id else ""};
+        FROM analytics AS T02
+        WHERE T02.timestamp BETWEEN ? AND ?
+        {"AND T02.device_id = ?" if device_id else ""};
     """
     row = await db.fetch_one(sql, params)
 
@@ -198,7 +198,7 @@ def _ranking_fetcher(column: str):
                 T02.location AS device_location
             
             FROM analytics AS T01
-            JOIN devices AS T02 ON T01.device_id = T01.id
+            JOIN devices AS T02 ON T01.device_id = T02.id
             WHERE timestamp > ?
             ORDER BY {column} DESC
             {"LIMIT ?" if limit else ""};

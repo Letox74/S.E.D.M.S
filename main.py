@@ -17,10 +17,15 @@ from core.config import (
     ALLOWED_ORIGINS,
     ALLOWED_METHODS,
     ALLOWED_HEADERS,
-    ACTIVATE_RATE_LIMITS
+    ACTIVATE_RATE_LIMITS,
+    IGNORE_WARNINGS
 )
 from core.lifespan import lifespan
 from core.logging_config import setup_logging
+
+if IGNORE_WARNINGS:
+    import warnings
+    warnings.filterwarnings("ignore")
 
 setup_logging()
 
