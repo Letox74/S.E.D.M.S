@@ -5,8 +5,8 @@ from pydantic import BaseModel, Field
 
 
 class PredictionBase(BaseModel):
-    device_id: str = Field(
-        default=...,
+    device_id: Optional[str] = Field(
+        default=None, # the predict can be for only one Device or for all
         description="The generated uuid for the Device, where the prediction data is from"
     )
 

@@ -86,7 +86,7 @@ CREATE_ANALYTICS_SQL = """
 CREATE_PREDICTIONS_SQL = """
         CREATE TABLE IF NOT EXISTS predictions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            device_id TEXT NOT NULL,
+            device_id TEXT,
             predicted_load REAL NOT NULL,
             actual_load REAL,
             prediction_error REAL,

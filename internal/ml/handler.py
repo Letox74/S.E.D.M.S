@@ -1,4 +1,5 @@
 import json
+import logging
 import pickle
 from datetime import date
 from pathlib import Path
@@ -9,6 +10,8 @@ from lightgbm import LGBMRegressor
 from sklearn.pipeline import Pipeline
 
 from database.connection import DatabaseManager
+
+app_logger = logging.getLogger("App")
 
 MODELS_DIR = Path(__file__).parent.resolve() / "models"
 
@@ -76,7 +79,7 @@ def save_model_metadata(
     current_date = date.today().strftime("%Y-%m-%d")
 
     features = {}
-    for name, value in zip(model.feature_name_[15], model.feature_importances_[15]):  # extract the top 15 features
+    for name, value in zip(model.feature_name_[10], model.feature_importances_[10]):  # extract the top 10 features
         features[name] = value
 
     metadata_json["last_updated"] = current_date
@@ -93,6 +96,8 @@ def save_model_metadata(
 
     with open(METADATA_PATH, "w", encoding="utf-8") as metadata:
         json.dump(metadata_json, metadata, ensure_ascii=True, indent=4)
+
+    app_logger.info(f"Model updated to version {new_version}, RMSE: {metrics["rmse"]}")
 
 
 async def get_raw_training_data(db: DatabaseManager) -> pd.DataFrame:
