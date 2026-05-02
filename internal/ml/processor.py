@@ -1,8 +1,11 @@
+from datetime import datetime
+from typing import Optional
+
 import numpy as np
 import pandas as pd
 
 from database.connection import DatabaseManager
-from .handler import get_raw_training_data
+from .handler import get_raw_data
 
 
 def _apply_sin_cos(df: pd.DataFrame, target_time) -> pd.DataFrame:
@@ -50,8 +53,8 @@ def _apply_lags_and_rolling(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-async def create_data(db: DatabaseManager, horizon_minutes: int) -> tuple[pd.DataFrame, pd.Series]:
-    df = await get_raw_training_data(db)
+async def create_data(device_id: Optional[str], after: Optional[datetime], horizon_minutes: int, db: DatabaseManager) -> tuple[pd.DataFrame, pd.Series]:
+    df = await get_raw_data(device_id, after, db)
 
     # extract the hour, day and month
     df["hour"] = df["timestamp"].dt.hour

@@ -41,7 +41,7 @@ TELEMETRY_LIMIT: int = 1 # in minutes
 RETRAIN_SCHEDULER: Optional[str] = None
 
 # three models in total
-PREDICTION_HORIZONS: list[int] = [15, 60, 360] # in minutes
+PREDICTION_HORIZONS: list[int] = [15, 60, 360, 1440] # in minutes
 # can be refactored later, that the user decides the three models
 
 # other stuff

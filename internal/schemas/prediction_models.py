@@ -46,11 +46,6 @@ class PredictionBase(BaseModel):
         le=100
     )
 
-    feature_importance: str = Field(
-        default=...,
-        description="The most important features according to the model (JSON String)"
-    )
-
     prediction_horizon_minutes: int = Field(
         default=...,
         description="How many minutes in the features this prediction is set",

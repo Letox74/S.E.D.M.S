@@ -5,11 +5,13 @@ import logging
 from datetime import datetime
 from typing import Optional, Never
 
+import aiosqlite
 from aiosqlite import Row
 
 from database.connection import DatabaseManager
 from ..schemas.analytic_models import AnalyticsRead, AnalyticsCreate
 from ..schemas.device_models import DeviceRead, DeviceCreate
+from ..schemas.prediction_models import PredictionRead, PredictionCreate
 from ..schemas.telemetry_models import TelemetryRead, TelemetryCreate
 
 app_logger = logging.getLogger("App")
@@ -30,6 +32,10 @@ def _handle_new_row_result(table_name: str, row: Row) -> DeviceRead | TelemetryR
         "analytics": (
             lambda: analytics_logger.info(f"Received new Analytics Data from Device {row["device_id"]}"),
             lambda: AnalyticsRead(**dict(row))
+        ),
+        "predictions": (
+            lambda: app_logger.info("Saved new Prediction"),
+            lambda: PredictionRead(**dict(row))
         )
     }
 
@@ -38,10 +44,10 @@ def _handle_new_row_result(table_name: str, row: Row) -> DeviceRead | TelemetryR
 
 
 async def db_insert_new_row(
-        data: DeviceCreate | TelemetryCreate | AnalyticsCreate,
+        data: DeviceCreate | TelemetryCreate | AnalyticsCreate | PredictionCreate,
         table_name: str,
         db: DatabaseManager
-) -> DeviceRead | TelemetryRead | AnalyticsRead:
+) -> DeviceRead | TelemetryRead | AnalyticsRead | PredictionRead:
     fields = data.model_dump()  # to not type it manually
 
     # prepare sql string
@@ -59,27 +65,44 @@ async def db_insert_new_row(
     return _handle_new_row_result(table_name, row)
 
 
+def _return_row(
+        rows: list[aiosqlite.Row] | list[Never],
+        table_name: str
+) -> list[TelemetryRead] | list[AnalyticsRead] | list[PredictionRead] | list[Never]:
+    if table_name == "telemetry":
+        return [TelemetryRead(**dict(row)) for row in rows]
+
+    elif table_name == "analytics":
+        return [AnalyticsRead(**dict(row)) for row in rows]
+
+    return [PredictionRead(**dict(row)) for row in rows]
+
+
 # methods for telemetry and analytics
 async def db_get_latest_row(
-        device_id: str,
+        device_id: Optional[str],
         table_name: str,
         db: DatabaseManager
-) -> TelemetryRead | AnalyticsRead | None:
+) -> TelemetryRead | AnalyticsRead | PredictionRead | None:
     sql = f"""
         SELECT *
         FROM {table_name}
-        WHERE device_id = ?
+        {"WHERE device_id = ?" if device_id else ""}
         ORDER BY timestamp DESC
         LIMIT 1;
     """
-    row = await db.fetch_one(sql, (device_id,))
+    row = await db.fetch_one(sql, (device_id,) if device_id else ())
 
     if row is None:
         return None
+
     elif table_name == "telemetry":
         return TelemetryRead(**dict(row))
 
-    return AnalyticsRead(**dict(row))
+    elif table_name == "analytics":
+        return AnalyticsRead(**dict(row))
+
+    return PredictionRead(**dict(row))
 
 
 async def db_get_history(
@@ -88,7 +111,7 @@ async def db_get_history(
         limit: Optional[int],
         table_name: str,
         db: DatabaseManager
-) -> list[TelemetryRead] | list[AnalyticsRead] | list[Never]:
+) -> list[TelemetryRead] | list[AnalyticsRead] | list[PredictionRead] | list[Never]:
     # strftime to a string if datetime was set, then prepare the params
     daterange = daterange or [None]
     params = tuple(param for param in (device_id, *daterange, limit) if param is not None)
@@ -111,40 +134,48 @@ async def db_get_history(
     """
     rows = await db.fetch_all(sql, params)
 
-    return [TelemetryRead(**dict(row)) for row in rows] if table_name == "telemetry" else [AnalyticsRead(**dict(row)) for row in rows]
+    return _return_row(rows, table_name)
 
 
 async def db_get_range(
-        device_id: str,
+        device_id: Optional[str],
         daterange: list[datetime],
         table_name: str,
         db: DatabaseManager
-) -> list[TelemetryRead] | list[AnalyticsRead] | list[Never]:
+) -> list[TelemetryRead] | list[AnalyticsRead] | list[PredictionRead] | list[Never]:
+    params = tuple([param for param in (*daterange, device_id) if param is not None])
+
     sql = f"""
         SELECT *
         FROM {table_name}
-        WHERE device_id = ?
-            AND timestamp BETWEEN ? AND ?;
+        WHERE timestamp BETWEEN ? AND ?
+            {"AND device_id = ?" if device_id else ""};
     """
-    rows = await db.fetch_all(sql, (device_id, *[date for date in daterange]))
+    rows = await db.fetch_all(sql, params)
     # here I don't need to check if the date is None, because it's not an optional parameter
 
-    return [TelemetryRead(**dict(row)) for row in rows] if table_name == "telemetry" else [AnalyticsRead(**dict(row)) for row in rows]
+    return _return_row(rows, table_name)
 
 
 async def db_delete(
-        device_id: str,
+        device_id: Optional[str],
         before: Optional[datetime],
         limit: Optional[int],
         table_name: str,
         db: DatabaseManager
 ) -> int:
     values = tuple(param for param in (device_id, before, limit) if param is not None)  # prepare the params
+    where_clause = []
+    if device_id:
+        where_clause.append("device_id = ?")
+    if before:
+        where_clause.append("timestamp < ?")
+    where_str = f"WHERE {" AND ".join(where_clause)}" if where_clause else ""
+
 
     sql = f"""
         DELETE FROM {table_name}
-        WHERE device_id = ?
-            {"AND timestamp < ?" if before else ""}
+        {where_str}
         ORDER BY timestamp ASC
         {"LIMIT ?" if limit else ""};
     """
@@ -153,8 +184,15 @@ async def db_delete(
     return deleted_rows
 
 
-async def db_count(device_id: str, table_name: str, db: DatabaseManager) -> int:
-    sql = f"""
+def _get_count_sql(device_id: Optional[str], table_name: str) -> str:
+    if table_name == "predictions":
+        return f"""
+            SELECT COUNT(*)
+            FROM {table_name} AS T01
+            {"WHERE device_id = ?" if device_id else ""};
+        """
+
+    return f"""
         SELECT
             COUNT(T01.*) AS count,
             T02.name     AS device_name,
@@ -162,8 +200,10 @@ async def db_count(device_id: str, table_name: str, db: DatabaseManager) -> int:
             
         FROM {table_name} AS T01
         JOIN devcies AS T02 ON T01.device_id = T02.id
-        WHERE device_id = ?;
+        {"WHERE device_id = ?" if device_id else ""};
     """
-    row = await db.fetch_one(sql, (device_id,))
+
+async def db_count(device_id: Optional[str], table_name: str, db: DatabaseManager) -> int:
+    row = await db.fetch_one(_get_count_sql(device_id, table_name), (device_id,) if device_id else ())
 
     return row["count"]  # access column "count"

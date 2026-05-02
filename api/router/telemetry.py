@@ -57,14 +57,17 @@ async def ingest_telemetry(
     response_model=TelemetryRead,
     status_code=status.HTTP_200_OK
 )
-async def get_latest_teemetry(
-        device_id: UUID = Path(default=..., description="The Device ID"),
+async def get_latest_telemetry(
+        device_id: Optional[UUID] = Path(default=..., description="The Device ID"),
         db: DatabaseManager = Depends(get_db_session)
-) -> TelemetryRead:
-    await validate_device_exists(str(device_id), db)
-    await validate_device_has_telemetry(str(device_id), db)
+) -> TelemetryRead | None:
+    device_id = str(device_id) if device_id else None
 
-    return await telemetry_service.db_get_latest_telemetry(str(device_id), db)
+    if device_id:
+        await validate_device_exists(device_id, db)
+        await validate_device_has_telemetry(device_id, db)
+
+    return await telemetry_service.db_get_latest_telemetry(device_id, db)
 
 
 @telemetry_router.get(
@@ -74,14 +77,17 @@ async def get_latest_teemetry(
     status_code=status.HTTP_200_OK
 )
 async def get_telemetry_history(
-        device_id: UUID = Path(default=..., description="The Device ID"),
+        device_id: Optional[UUID] = Path(default=None, description="The Device ID"),
         start_datetime: Optional[datetime] = Query(default=None, description="The start datetime"),
         end_datetime: Optional[datetime] = Query(default=None, description="The end datetime"),
         limit: Optional[int] = Query(default=20, ge=0, description="A optional limit"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> list[TelemetryRead]:
-    await validate_device_exists(str(device_id), db)
-    await validate_device_has_telemetry(str(device_id), db)
+    device_id = str(device_id) if device_id else None
+
+    if device_id:
+        await validate_device_exists(str(device_id), db)
+        await validate_device_has_telemetry(str(device_id), db)
     daterange = await validate_daterange(start_datetime, end_datetime)
 
     return await telemetry_service.db_get_telemetry_history(str(device_id), daterange, limit, db)
@@ -94,16 +100,19 @@ async def get_telemetry_history(
     status_code=status.HTTP_200_OK
 )
 async def get_telemetry_range(
-        device_id: UUID = Path(default=..., description="The Device ID"),
+        device_id: Optional[UUID] = Path(default=None, description="The Device ID"),
         start_datetime: datetime = Query(default=..., description="The start datetime"),
         end_datetime: datetime = Query(default=..., description="The end datetime"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> list[TelemetryRead]:
-    await validate_device_exists(str(device_id), db)
-    await validate_device_has_telemetry(str(device_id), db)
+    device_id = str(device_id) if device_id else None
+
+    if device_id:
+        await validate_device_exists(device_id, db)
+        await validate_device_has_telemetry(device_id, db)
     daterange = await validate_daterange(start_datetime, end_datetime)
 
-    return await telemetry_service.db_get_telemetry_range(str(device_id), daterange, db)
+    return await telemetry_service.db_get_telemetry_range(device_id, daterange, db)
 
 
 @telemetry_router.delete(
@@ -112,16 +121,19 @@ async def get_telemetry_range(
     status_code=status.HTTP_200_OK
 )
 async def clear_telemetry(
-        device_id: UUID = Path(default=..., description="The Device ID"),
+        device_id: Optional[UUID] = Path(default=None, description="The Device ID"),
         before: Optional[datetime] = Query(default=None, description="Only clear before this datetime"),
         limit: Optional[int] = Query(default=50, ge=0, description="A optional limit"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> dict[str, str | int]:
-    await validate_device_exists(str(device_id), db)
-    await validate_device_has_telemetry(str(device_id), db)
-    deleted_rows = await telemetry_service.db_delete_telemetry(str(device_id), before, limit, db)
+    device_id = str(device_id) if device_id else None
 
-    return {"device_id": str(device_id), "deleted_rows": deleted_rows}
+    if device_id:
+        await validate_device_exists(device_id, db)
+        await validate_device_has_telemetry(device_id, db)
+    deleted_rows = await telemetry_service.db_delete_telemetry(device_id, before, limit, db)
+
+    return {"deleted_rows": deleted_rows}
 
 
 @telemetry_router.get(
@@ -130,14 +142,17 @@ async def clear_telemetry(
     status_code=status.HTTP_200_OK
 )
 async def get_telemetry_count(
-        device_id: UUID = Path(default=..., description="The Device ID"),
+        device_id: Optional[UUID] = Path(default=None, description="The Device ID"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> dict[str, str | int]:
-    await validate_device_exists(str(device_id), db)
-    await validate_device_has_telemetry(str(device_id), db)
-    count = await telemetry_service.db_telemetry_count(str(device_id), db)
+    device_id = str(device_id) if device_id else None
 
-    return {"device_id": str(device_id), "count": count}
+    if device_id:
+        await validate_device_exists(device_id, db)
+        await validate_device_has_telemetry(device_id, db)
+    count = await telemetry_service.db_telemetry_count(device_id, db)
+
+    return {"count": count}
 
 
 @telemetry_router.get(

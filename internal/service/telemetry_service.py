@@ -4,6 +4,7 @@ import time
 from datetime import datetime, timezone, timedelta
 from typing import Never, Optional
 
+from core.config import TELEMETRY_LIMIT
 from database.connection import DatabaseManager
 from internal.schemas.telemetry_models import TelemetryCreate, TelemetryRead
 from .analytics_service import insert_new_analytic
@@ -16,7 +17,6 @@ from .utils import (
     db_delete,
     db_count
 )
-from core.config import TELEMETRY_LIMIT
 
 telemetry_logger = logging.getLogger("Telemetry")
 error_logger = logging.getLogger("Error")
@@ -62,7 +62,7 @@ async def db_ingest_telemetry(data: TelemetryCreate, db: DatabaseManager) -> Tel
     return await db_insert_new_row(data, "telemetry", db)
 
 
-async def db_get_latest_telemetry(device_id: str, db: DatabaseManager) -> TelemetryRead | None:
+async def db_get_latest_telemetry(device_id: Optional[str], db: DatabaseManager) -> TelemetryRead | None:
     return await db_get_latest_row(device_id, "telemetry", db)
 
 
@@ -76,7 +76,7 @@ async def db_get_telemetry_history(
 
 
 async def db_get_telemetry_range(
-        device_id: str,
+        device_id: Optional[str],
         daterange: list[datetime],
         db: DatabaseManager
 ) -> list[TelemetryRead] | list[Never]:
@@ -84,7 +84,7 @@ async def db_get_telemetry_range(
 
 
 async def db_delete_telemetry(
-        device_id: str,
+        device_id: Optional[str],
         before: Optional[datetime],
         limit: Optional[int],
         db: DatabaseManager
@@ -92,7 +92,7 @@ async def db_delete_telemetry(
     return await db_delete(device_id, before, limit, "telemetry", db)
 
 
-async def db_telemetry_count(device_id: str, db: DatabaseManager) -> int:
+async def db_telemetry_count(device_id: Optional[str], db: DatabaseManager) -> int:
     return await db_count(device_id, "telemetry", db)
 
 

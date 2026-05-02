@@ -93,7 +93,6 @@ CREATE_PREDICTIONS_SQL = """
             anomaly_score REAL NOT NULL,
             is_anomaly BOOLEAN NOT NULL,
             confidence REAL NOT NULL,
-            feature_importance_json TEXT NOT NULL,
             prediction_horizon_minutes INTEGER NOT NULL,
             model_version TEXT NOT NULL,
             timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -102,3 +101,9 @@ CREATE_PREDICTIONS_SQL = """
 """
 # anomaly_score: atypical of a datapoint
 # predicted_load: is in watt (in 30 min the device will use 30W)
+
+CREATE_INDICIES_SQL = """
+        CREATE INDEX IF NOT EXISTS idx_telemetry_timestamp ON telemetry(timestamp);
+        CREATE INDEX IF NOT EXISTS idx_analytics_timestamp ON analytics(timestamp);
+        CREATE INDEX IF NOT EXISTS idx_predictions_timestamp ON predictions(timestamp);
+"""

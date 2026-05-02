@@ -11,7 +11,8 @@ from .models_sql import (
     CREATE_DEVICE_STATUS_LOG_SQL,
     CREATE_TELEMETRY_SQL,
     CREATE_ANALYTICS_SQL,
-    CREATE_PREDICTIONS_SQL
+    CREATE_PREDICTIONS_SQL,
+    CREATE_INDICIES_SQL
 )
 
 SCHEMAS = [CREATE_DEVICES_SQL, CREATE_DEVICE_STATUS_LOG_SQL, CREATE_TELEMETRY_SQL,
@@ -94,9 +95,13 @@ class DatabaseManager:
     async def initialize_schema(self) -> None:
         try:
             for schema in SCHEMAS:
-                await self._connection.executescript(schema)
+                await self._connection.execute(schema)
 
             await self._connection.commit()  # to create the tables (schema found here: database/models_sql.py)
+
+            # create indicies
+            await self._connection.executescript(CREATE_INDICIES_SQL)
+            await self._connection.commit()
 
         except Exception as e:
             error_logger.error(f"Schema initialization failed: {e}")

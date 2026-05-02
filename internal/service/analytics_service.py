@@ -21,7 +21,7 @@ async def insert_new_analytic(data: AnalyticsCreate, db: DatabaseManager) -> Ana
     return await db_insert_new_row(data, "analytics", db)
 
 
-async def db_get_latest_analytic(device_id: str, db: DatabaseManager) -> AnalyticsRead | None:
+async def db_get_latest_analytic(device_id: Optional[str], db: DatabaseManager) -> AnalyticsRead | None:
     return await db_get_latest_row(device_id, "analytics", db)
 
 
@@ -35,7 +35,7 @@ async def db_get_analytics_history(
 
 
 async def db_get_analytics_range(
-        device_id: str,
+        device_id: Optional[str],
         daterange: list[datetime],
         db: DatabaseManager
 ) -> list[AnalyticsRead] | list[Never]:
@@ -43,7 +43,7 @@ async def db_get_analytics_range(
 
 
 async def db_delete_analytics(
-        device_id: str,
+        device_id: Optional[str],
         before: Optional[datetime],
         limit: Optional[int],
         db: DatabaseManager
@@ -51,7 +51,7 @@ async def db_delete_analytics(
     return await db_delete(device_id, before, limit, "analytics", db)
 
 
-async def db_analytics_count(device_id: str, db: DatabaseManager) -> int:
+async def db_analytics_count(device_id: Optional[str], db: DatabaseManager) -> int:
     return await db_count(device_id, "analytics", db)
 
 

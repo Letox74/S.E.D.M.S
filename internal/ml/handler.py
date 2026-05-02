@@ -2,6 +2,7 @@ import json
 import logging
 import pickle
 from datetime import date
+from datetime import datetime
 from pathlib import Path
 from typing import Optional, Literal
 
@@ -18,13 +19,14 @@ MODELS_DIR = Path(__file__).parent.resolve() / "models"
 LGBM_PATH_15min = MODELS_DIR / "lgbm_model_15min.pkl"
 LGBM_PATH_1h = MODELS_DIR / "lgbm_model_1h.pkl"
 LGBM_PATH_6h = MODELS_DIR / "lgbm_model_6h.pkl"
+LGBM_PATH_24h = MODELS_DIR / "lgbm_model_24h.pkl"
 
 ISO_FOREST_PATH = MODELS_DIR / "iso_forest.pkl"
 METADATA_PATH = MODELS_DIR / "metadata.json"
 
 
-def load_active_models(model_name: Literal["15min", "1h", "6h"]) -> tuple[LGBMRegressor, Pipeline] | None:
-    if not all(path.exists() for path in (LGBM_PATH_15min, LGBM_PATH_1h, LGBM_PATH_6h, ISO_FOREST_PATH)):
+def load_active_models(model_name: Literal["15min", "1h", "6h", "24h"]) -> tuple[LGBMRegressor, Pipeline] | None:
+    if not all(path.exists() for path in (LGBM_PATH_15min, LGBM_PATH_1h, LGBM_PATH_6h, LGBM_PATH_24h, ISO_FOREST_PATH)):
         return None
 
     with open(MODELS_DIR / f"lgbm_model_{model_name}", "rb") as lgbm_file:
@@ -36,7 +38,7 @@ def load_active_models(model_name: Literal["15min", "1h", "6h"]) -> tuple[LGBMRe
     return lgbm_model, iso_forest_model
 
 
-def save_model(model: LGBMRegressor | Pipeline, model_name: Optional[Literal["15min", "1h", "6h"]]) -> None:
+def save_model(model: LGBMRegressor | Pipeline, model_name: Optional[Literal["15min", "1h", "6h", "24h"]]) -> None:
     if isinstance(model, LGBMRegressor):
         with open(MODELS_DIR / f"lgbm_model_{model_name}", "wb") as lgbm_file:
             pickle.dump(model, lgbm_file)
@@ -100,8 +102,31 @@ def save_model_metadata(
     app_logger.info(f"Model updated to version {new_version}, RMSE: {metrics["rmse"]}")
 
 
-async def get_raw_training_data(db: DatabaseManager) -> pd.DataFrame:
-    sql = """
+def _get_aggregations() -> dict[str, str]:
+    return {
+        "avg_power": "mean",
+        "std_power": "mean",
+        "avg_voltage": "mean",
+        "avg_temperature": "mean",
+        "efficiency_score": "mean",
+        "energy_consumption": "sum",
+        "current_battery_percentage": "last",
+        "is_active": "max",
+        "type": "first",
+        "has_battery": "first"
+    }
+
+async def get_raw_data(device_id: Optional[str], after: Optional[datetime], db: DatabaseManager) -> pd.DataFrame:
+    params = tuple([param for param in (device_id, after) if param is not None])
+
+    where_clause = []
+    if device_id:
+        where_clause.append("T01.device_id = ?")
+    if after:
+        where_clause.append("T01.timestamp > ?")
+    where_str = f"WHRE {" AND ".join(where_clause)}" if where_clause else ""
+
+    sql = f"""
         SELECT
             T01.avg_power,
             T01.std_power,
@@ -121,15 +146,17 @@ async def get_raw_training_data(db: DatabaseManager) -> pd.DataFrame:
         JOIN devices AS T02 ON T01.device_id = T02.id
         JOIN telemetry AS T03 ON T01.device_id = T03.device_id
         
+        {where_str}
+        
         ORDER BY T01.timestamp ASC;
     """
-    rows = await db.fetch_all(sql)
+    rows = await db.fetch_all(sql, params)
 
     df = pd.DataFrame([dict(row) for row in rows])
     df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce", yearfirst=True)
     df.set_index("timestamp", inplace=True)
 
-    df.resample(f"15min").mean()  # lowest intervall of the three models
+    df.resample(f"15min").agg(_get_aggregations())  # lowest intervall of the three models
     df.ffill(inplace=True)
 
     return df

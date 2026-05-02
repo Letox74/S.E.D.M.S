@@ -28,14 +28,17 @@ analytics_router = APIRouter(
     response_model=AnalyticsRead,
     status_code=status.HTTP_200_OK
 )
-async def get_latest_teemetry(
-        device_id: UUID = Path(default=..., description="The Device ID"),
+async def get_latest_analytic(
+        device_id: Optional[UUID] = Path(default=None, description="The Device ID"),
         db: DatabaseManager = Depends(get_db_session)
-) -> AnalyticsRead:
-    await validate_device_exists(str(device_id), db)
-    await validate_device_has_analytics(str(device_id), db)
+) -> AnalyticsRead | None:
+    device_id = str(device_id) if device_id else None
 
-    return await analytics_service.db_get_latest_analytic(str(device_id), db)
+    if device_id:
+        await validate_device_exists(device_id, db)
+        await validate_device_has_analytics(device_id, db)
+
+    return await analytics_service.db_get_latest_analytic(device_id, db)
 
 
 @analytics_router.get(
@@ -44,18 +47,21 @@ async def get_latest_teemetry(
     response_model=list[AnalyticsRead],
     status_code=status.HTTP_200_OK
 )
-async def get_telemetry_history(
-        device_id: UUID = Path(default=..., description="The Device ID"),
+async def get_analytics_history(
+        device_id: Optional[UUID] = Path(default=None, description="The Device ID"),
         start_datetime: Optional[datetime] = Query(default=None, description="The start datetime"),
         end_datetime: Optional[datetime] = Query(default=None, description="The end datetime"),
         limit: Optional[int] = Query(default=None, description="A optional limit"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> list[AnalyticsRead]:
-    await validate_device_exists(str(device_id), db)
-    await validate_device_has_analytics(str(device_id), db)
+    device_id = str(device_id) if device_id else None
+
+    if device_id:
+        await validate_device_exists(device_id, db)
+        await validate_device_has_analytics(device_id, db)
     daterange = await validate_daterange(start_datetime, end_datetime)
 
-    return await analytics_service.db_get_analytics_history(str(device_id), daterange, limit, db)
+    return await analytics_service.db_get_analytics_history(device_id, daterange, limit, db)
 
 
 @analytics_router.get(
@@ -64,17 +70,20 @@ async def get_telemetry_history(
     response_model=list[AnalyticsRead],
     status_code=status.HTTP_200_OK
 )
-async def get_telemetry_range(
-        device_id: UUID = Path(default=..., description="The Device ID"),
+async def get_analytics_range(
+        device_id: Optional[UUID] = Path(default=None, description="The Device ID"),
         start_datetime: datetime = Query(default=..., description="The start datetime"),
         end_datetime: datetime = Query(default=..., description="The end datetime"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> list[AnalyticsRead]:
-    await validate_device_exists(str(device_id), db)
-    await validate_device_has_analytics(str(device_id), db)
+    device_id = str(device_id) if device_id else None
+
+    if device_id:
+        await validate_device_exists(device_id, db)
+        await validate_device_has_analytics(device_id, db)
     daterange = await validate_daterange(start_datetime, end_datetime)
 
-    return await analytics_service.db_get_analytics_range(str(device_id), daterange, db)
+    return await analytics_service.db_get_analytics_range(device_id, daterange, db)
 
 
 @analytics_router.delete(
@@ -82,17 +91,20 @@ async def get_telemetry_range(
     description="Clears the Analytics data",
     status_code=status.HTTP_200_OK
 )
-async def clear_telemetry(
-        device_id: UUID = Path(default=..., description="The Device ID"),
+async def clear_analytics(
+        device_id: Optional[UUID] = Path(default=None, description="The Device ID"),
         before: Optional[datetime] = Query(default=None, description="Only clear before this datetime"),
         limit: Optional[int] = Query(default=None, description="A optional limit"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> dict[str, str | int]:
-    await validate_device_exists(str(device_id), db)
-    await validate_device_has_analytics(str(device_id), db)
-    deleted_rows = await analytics_service.db_delete_analytics(str(device_id), before, limit, db)
+    device_id = str(device_id) if device_id else None
 
-    return {"device_id": str(device_id), "deleted_rows": deleted_rows}
+    if device_id:
+        await validate_device_exists(device_id, db)
+        await validate_device_has_analytics(device_id, db)
+    deleted_rows = await analytics_service.db_delete_analytics(device_id, before, limit, db)
+
+    return {"deleted_rows": deleted_rows}
 
 
 @analytics_router.get(
@@ -100,15 +112,18 @@ async def clear_telemetry(
     description="Cont how many entries there are from this Device",
     status_code=status.HTTP_200_OK
 )
-async def get_telemetry_count(
-        device_id: UUID = Path(default=..., description="The Device ID"),
+async def get_analytics_count(
+        device_id: Optional[UUID] = Path(default=None, description="The Device ID"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> dict[str, str | int]:
-    await validate_device_exists(str(device_id), db)
-    await validate_device_has_analytics(str(device_id), db)
+    device_id = str(device_id) if device_id else None
+
+    if device_id:
+        await validate_device_exists(str(device_id), db)
+        await validate_device_has_analytics(str(device_id), db)
     count = await analytics_service.db_analytics_count(str(device_id), db)
 
-    return {"device_id": str(device_id), "count": count}
+    return {"count": count}
 
 
 @analytics_router.get(
@@ -271,7 +286,7 @@ async def get_consumption_ranking(
     response_model=None,
     status_code=status.HTTP_200_OK
 )
-async def export_device_telemetry(
+async def export_device_analytics(
         file_format: Literal["json", "csv"] = Query(default="json", description="The format of the returned data"),
         device_id: UUID = Path(default=..., description="The Device ID"),
         start_datetime: Optional[datetime] = Query(default=None, description="The start datetime"),
@@ -300,7 +315,7 @@ async def export_device_telemetry(
     response_model=None,
     status_code=status.HTTP_200_OK
 )
-async def export_all_telemetry(
+async def export_all_analytics(
         file_format: Literal["json", "csv"] = Query(default="json", description="The format of the returned data"),
         start_datetime: Optional[datetime] = Query(default=None, description="The start datetime"),
         end_datetime: Optional[datetime] = Query(default=None, description="The end datetime"),

@@ -20,7 +20,7 @@ from .processor import create_data
 app_logger = logging.getLogger("App")
 
 
-async def train_models(optimize: bool, analytics_count: int, db: DatabaseManager) -> None | str:
+async def train_models(optimize: bool, analytics_count: int, db: DatabaseManager) -> None:
     await asyncio.gather(
         train_regression(optimize, analytics_count, db),
         train_isolation_forest(analytics_count, db)
@@ -81,9 +81,9 @@ async def train_regression(optimize: bool, analytics_count: int, db: DatabaseMan
 
     app_logger.info(f"ID: {id}\t Model training started (Optimize: {optimize})")
 
-    model_data = await asyncio.gather(*[create_data(db, minutes) for minutes in PREDICTION_HORIZONS])
+    model_data = await asyncio.gather(*[create_data(None, None, minutes, db) for minutes in PREDICTION_HORIZONS])
     await asyncio.gather(*[_train_regression_model(data[i][0], data[i][1], name, optimize, analytics_count)
-                                    for name, i, data in zip(["15min", "1h", "6h"], enumerate(model_data))])
+                                    for name, i, data in zip(["15min", "1h", "6h", "24h"], enumerate(model_data))])
 
     app_logger.info(f"ID: {id}\t Model training ended, took {((time.perf_counter() - start_time) / 60):.2f} minutes")
 
