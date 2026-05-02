@@ -102,7 +102,7 @@ CREATE_PREDICTIONS_SQL = """
 # anomaly_score: atypical of a datapoint
 # predicted_load: is in watt (in 30 min the device will use 30W)
 
-CREATE_INDICIES_SQL = """
+CREATE_INDICES_SQL = """
         CREATE INDEX IF NOT EXISTS idx_telemetry_timestamp ON telemetry(timestamp);
         CREATE INDEX IF NOT EXISTS idx_analytics_timestamp ON analytics(timestamp);
         CREATE INDEX IF NOT EXISTS idx_predictions_timestamp ON predictions(timestamp);

@@ -29,7 +29,7 @@ analytics_router = APIRouter(
     status_code=status.HTTP_200_OK
 )
 async def get_latest_analytic(
-        device_id: Optional[UUID] = Path(default=None, description="The Device ID"),
+        device_id: Optional[UUID] = Path(default=..., description="The Device ID"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> AnalyticsRead | None:
     device_id = str(device_id) if device_id else None
@@ -48,12 +48,12 @@ async def get_latest_analytic(
     status_code=status.HTTP_200_OK
 )
 async def get_analytics_history(
-        device_id: Optional[UUID] = Path(default=None, description="The Device ID"),
+        device_id: Optional[UUID] = Path(default=..., description="The Device ID"),
         start_datetime: Optional[datetime] = Query(default=None, description="The start datetime"),
         end_datetime: Optional[datetime] = Query(default=None, description="The end datetime"),
         limit: Optional[int] = Query(default=None, description="A optional limit"),
         db: DatabaseManager = Depends(get_db_session)
-) -> list[AnalyticsRead]:
+) -> list[AnalyticsRead] | list[Never]:
     device_id = str(device_id) if device_id else None
 
     if device_id:
@@ -71,11 +71,11 @@ async def get_analytics_history(
     status_code=status.HTTP_200_OK
 )
 async def get_analytics_range(
-        device_id: Optional[UUID] = Path(default=None, description="The Device ID"),
+        device_id: Optional[UUID] = Path(default=..., description="The Device ID"),
         start_datetime: datetime = Query(default=..., description="The start datetime"),
         end_datetime: datetime = Query(default=..., description="The end datetime"),
         db: DatabaseManager = Depends(get_db_session)
-) -> list[AnalyticsRead]:
+) -> list[AnalyticsRead] | list[Never]:
     device_id = str(device_id) if device_id else None
 
     if device_id:
@@ -92,7 +92,7 @@ async def get_analytics_range(
     status_code=status.HTTP_200_OK
 )
 async def clear_analytics(
-        device_id: Optional[UUID] = Path(default=None, description="The Device ID"),
+        device_id: Optional[UUID] = Path(default=..., description="The Device ID"),
         before: Optional[datetime] = Query(default=None, description="Only clear before this datetime"),
         limit: Optional[int] = Query(default=None, description="A optional limit"),
         db: DatabaseManager = Depends(get_db_session)
@@ -113,7 +113,7 @@ async def clear_analytics(
     status_code=status.HTTP_200_OK
 )
 async def get_analytics_count(
-        device_id: Optional[UUID] = Path(default=None, description="The Device ID"),
+        device_id: Optional[UUID] = Path(default=..., description="The Device ID"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> dict[str, str | int]:
     device_id = str(device_id) if device_id else None
@@ -132,7 +132,7 @@ async def get_analytics_count(
     status_code=status.HTTP_200_OK
 )
 async def get_daily_summary(
-        device_id: UUID =  Path(default=..., description="The Device ID"),
+        device_id: UUID = Path(default=..., description="The Device ID"),
         summary_date: Optional[date] = Query(default=None, description="The date"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> dict[str, str | float | int] | None:

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from fastapi import Security, Request, HTTPException, status
@@ -79,6 +79,7 @@ class _DateRange:
     def to_list(self) -> list[datetime]:
         return [self.start, self.end]
 
+
 async def validate_daterange(start_datetime: Optional[datetime], end_datetime: Optional[datetime]) -> list[datetime] | None:
     if start_datetime is None and end_datetime is None:
         return None
@@ -116,4 +117,39 @@ async def validate_device_has_analytics(device_id: str, db: DatabaseManager) -> 
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No Analytic data found for this Device: {device_id}"
+        )
+
+
+# ml dependencies
+async def validate_predictions_exists(db: DatabaseManager) -> None:
+    result = await db.fetch_one("""
+            SELECT 1
+            FROM predictions
+        """)
+
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No Prediction data yet"
+        )
+
+async def validate_enough_analytics(db: DatabaseManager) -> None:
+    date = datetime.now(timezone.utc) - timedelta(hours=26)
+
+    sql = """
+        SELECT MIN(timestamp) AS timestamp
+        FROM analytics
+    """
+    row = await db.fetch_one(sql)
+
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No analtics data yet"
+        )
+
+    if datetime.fromisoformat(row["timestamp"].replace(" ", "T")).replace(tzinfo=timezone.utc) < date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Not enough data yet"
         )

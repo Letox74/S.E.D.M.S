@@ -12,7 +12,7 @@ from .models_sql import (
     CREATE_TELEMETRY_SQL,
     CREATE_ANALYTICS_SQL,
     CREATE_PREDICTIONS_SQL,
-    CREATE_INDICIES_SQL
+    CREATE_INDICES_SQL
 )
 
 SCHEMAS = [CREATE_DEVICES_SQL, CREATE_DEVICE_STATUS_LOG_SQL, CREATE_TELEMETRY_SQL,
@@ -21,8 +21,18 @@ SCHEMAS = [CREATE_DEVICES_SQL, CREATE_DEVICE_STATUS_LOG_SQL, CREATE_TELEMETRY_SQ
 error_logger = logging.getLogger("Error")
 app_logger = logging.getLogger("App")
 
+
 def _adapt_datetime_utc(val: bytes) -> datetime:
-    return datetime.fromisoformat(val.decode()).replace(tzinfo=timezone.utc)
+    dt_str =  val.decode()
+
+    if " " in dt_str and "T" not in dt_str:
+        dt_str = dt_str.replace(" ", "T")
+
+    return datetime.fromisoformat(dt_str).replace(tzinfo=timezone.utc)
+
+
+sqlite3.register_converter("DATETIME", _adapt_datetime_utc)
+
 
 class DatabaseManager:
     def __init__(self, db_path: str | Path) -> None:
@@ -31,9 +41,9 @@ class DatabaseManager:
 
     async def connect(self) -> None:
         try:
-            sqlite3.register_converter("DATETIME", _adapt_datetime_utc)
-
-            self._connection = await aiosqlite.connect(self.db_path, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+            self._connection = await aiosqlite.connect(
+                self.db_path,
+                detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
             self._connection.row_factory = aiosqlite.Row  # enable Row factory to access columns by name
 
             # WAL Mode, Foreign Keys and auto indexing activation
@@ -82,7 +92,7 @@ class DatabaseManager:
                     return row
 
             async with self._connection.execute(query, params) as cursor:
-                row_count = cursor.rowcount # how many rows were deleted, updated or inserted
+                row_count = cursor.rowcount  # how many rows were deleted, updated or inserted
                 await self._connection.commit()
 
                 return row_count
@@ -100,7 +110,7 @@ class DatabaseManager:
             await self._connection.commit()  # to create the tables (schema found here: database/models_sql.py)
 
             # create indicies
-            await self._connection.executescript(CREATE_INDICIES_SQL)
+            await self._connection.executescript(CREATE_INDICES_SQL)
             await self._connection.commit()
 
         except Exception as e:

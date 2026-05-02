@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, Literal
 
+import numpy as np
 import pandas as pd
 from lightgbm import LGBMRegressor
 from sklearn.pipeline import Pipeline
@@ -80,9 +81,12 @@ def save_model_metadata(
     new_version = _increment_version(metadata_json["models"]["model_name"]["current_version"])
     current_date = date.today().strftime("%Y-%m-%d")
 
-    features = {}
-    for name, value in zip(model.feature_name_[10], model.feature_importances_[10]):  # extract the top 10 features
-        features[name] = value
+    # get features importances
+    importances = model.feature_importances_
+    names = model.feature_name_
+    indices = np.argsort(importances)[::-1][:10]
+
+    features = {names[i]: float(importances[i]) for i in indices}
 
     metadata_json["last_updated"] = current_date
     history_dict = {

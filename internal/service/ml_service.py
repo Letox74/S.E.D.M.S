@@ -32,7 +32,7 @@ LGBM_PATH_24h = MODELS_DIR / "lgbm_model_24h.pkl"
 
 ISO_FOREST_PATH = MODELS_DIR / "iso_forest.pkl"
 
-METADATA_PATH = MODELS_DIR / "models" / "metadata.json"
+METADATA_PATH = MODELS_DIR / "metadata.json"
 
 
 def _get_prediction_models(
@@ -165,20 +165,24 @@ async def retrain_models(optimize: bool, db: DatabaseManager) -> None:
 async def get_model_metadata(
         after: Optional[date],
         version: Optional[str]
-) -> dict[str, dict[str, str | dict[str, float | int]]] | None:
+) -> dict[str, dict[str, str | list[dict[str, str | dict[str, float | int]]]]] | None:
     with open(METADATA_PATH, "r", encoding="utf-8") as metadata:
         data = json.load(metadata)["models"]
 
     return {
-        name: history
+        name: {
+            "current_version": model_info["current_version"],
+            "history": [
+                history for history in model_info["history"]
+                if (not version or history["version"] == version)
+                and (not after or datetime.strptime(history["date"], "%Y-%m-%d").date() > after)
+            ]
+        }
         for name, model_info in data.items()
-        for history in model_info["history"]
-        if (not version or history["version"] == version)
-           and (not after or datetime.strptime(history["date"], "%Y-%m-%d").date() > after)
     }
 
 
-async def clear_model_metadata(after: date):
+async def clear_model_metadata(before: date):
     with open(METADATA_PATH, "r+", encoding="utf-8") as metadata:
         data = json.load(metadata)
         current_date = date.today().strftime("%Y-%m-%d")
@@ -187,7 +191,7 @@ async def clear_model_metadata(after: date):
         for model_name in data["models"]:
             data["models"][model_name]["history"] = [
                 entry for entry in data["models"][model_name]["history"]
-                if after and datetime.strptime(entry["date"], "%Y-%m-%d").date() >= after
+                if datetime.strptime(entry["date"], "%Y-%m-%d").date() >= before
             ]
 
         metadata.seek(0)
