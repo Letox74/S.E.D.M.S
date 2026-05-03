@@ -9,6 +9,7 @@ from api.middleware.audit import AuditMiddleware
 from api.router import device_router, telemetry_router, analytics_router, ml_router
 from core.config import (
     VERSION,
+    PREFIX,
     DOCS_URL,
     REDOC_URL,
     OPENAPI_URL,
@@ -61,7 +62,7 @@ if USE_CORS:
 app.add_middleware(AuditMiddleware)
 
 # include routers
-app.include_router(device_router, prefix="/sedms/api")
-app.include_router(telemetry_router, prefix="/sedms/api")
-app.include_router(analytics_router, prefix="/sedms/api")
-app.include_router(ml_router, prefix="/sedms/api")
+app.include_router(device_router, prefix=PREFIX)
+app.include_router(telemetry_router, prefix=PREFIX)
+app.include_router(analytics_router, prefix=PREFIX)
+app.include_router(ml_router, prefix=PREFIX)
