@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 from typing import Never, Optional
@@ -18,31 +19,35 @@ DB_PATH: Path = Path(__file__).parent.parent.resolve() / "database" / "storage.d
 # api key
 API_KEY: str = os.getenv("API_KEY")
 
-# Docs Urls
-DOCS_URL: Optional[str] = "/sedms/api/docs"
-REDOC_URL: Optional[str] = "/sedms/api/redoc"
-OPENAPI_URL: Optional[str] = "/sedms/api/openapi.json"
+# URLs
+BASE_URL: str = os.getenv("BASE_URL")
+PORT: int = int(os.getenv("PORT"))
+
+PREFIX: str = os.getenv("PREFIX")
+DOCS_URL: Optional[str] = PREFIX + os.getenv("DOCS_URL")
+REDOC_URL: Optional[str] = PREFIX + os.getenv("REDOC_URL")
+OPENAPI_URL: Optional[str] = PREFIX + os.getenv("OPENAPI_URL")
 
 # CORS
-USE_CORS: bool = False
-ALLOW_CREDENTIALS: bool = True
-ALLOWED_ORIGINS: list[str] | list[Never] = ["*"]
-ALLOWED_METHODS: list[str] | list[Never] = ["*"]
-ALLOWED_HEADERS: list[str] | list[Never] = ["*"]
+USE_CORS: bool = os.getenv("USE_CORS").lower().strip() in ("true", "1", "yes")
+ALLOW_CREDENTIALS: bool = os.getenv("ALLOW_CREDENTIALS").lower().strip() in ("true", "1", "yes")
+ALLOWED_ORIGINS: list[str] | list[Never] = json.loads(os.getenv("ALLOWED_ORIGINS"))
+ALLOWED_METHODS: list[str] | list[Never] = json.loads(os.getenv("ALLOWED_METHODS"))
+ALLOWED_HEADERS: list[str] | list[Never] = json.loads(os.getenv("ALLOWED_HEADERS"))
 
 # rate limits
-DEFAULT_RATE_LIMIT: str = "35/minute"
-ACTIVATE_RATE_LIMITS: bool = True
+DEFAULT_RATE_LIMIT: str = os.getenv("DEFAULT_RATE_LIMIT")
+ACTIVATE_RATE_LIMITS: bool = os.getenv("ACTIVATE_RATE_LIMITS").lower().strip() in ("true", "1", "yes")
 
 # Telemetry
-TELEMETRY_LIMIT: int = 1 # in minutes
+TELEMETRY_LIMIT: int = int(os.getenv("TELEMETRY_LIMIT"))
 
 # ml stuff (soon, just examples)
 RETRAIN_SCHEDULER: Optional[str] = None
 
-# three models in total
-PREDICTION_HORIZONS: list[int] = [15, 60, 360, 1440] # in minutes
+# four models in total
+PREDICTION_HORIZONS: list[int] = json.loads(os.getenv("PREDICTION_HORIZONS")) # in minutes
 # can be refactored later, that the user decides the three models
 
 # other stuff
-IGNORE_WARNINGS: bool = False
+IGNORE_WARNINGS: bool = os.getenv("IGNORE_WARNINGS").lower().strip() in ("true", "1", "yes")
