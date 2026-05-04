@@ -235,11 +235,12 @@ async def db_alerts_battery(threshold: float, after: Optional[datetime], db: Dat
         SELECT 
             T01.*,
             T02.name        AS device_name,
-            T02.locatioin   AS device_location
+            T02.location    AS device_location
         FROM telemetry AS T01
         JOIN devices AS T02 ON T01.device_id = T02.id
-        WHERE current_battery_percentage < ? AND >= 0
-            AND timestamp > ?
+        WHERE current_battery_percentage <= ? 
+            AND current_battery_percentage >= 0
+            AND timestamp => ?
         ORDER BY timestamp DESC;
     """
     rows = await db.fetch_all(sql, (threshold, after))
@@ -258,11 +259,11 @@ async def db_alerts_temperature(
         SELECT 
             T01.*,
             T02.name        AS device_name,
-            T02.locatioin   AS device_location
+            T02.location   AS device_location
         FROM telemetry AS T01
         JOIN devices AS T02 ON T01.device_id = T02.id
-        WHERE temperature > ?
-            AND timestamp > ?
+        WHERE temperature => ?
+            AND timestamp => ?
         ORDER BY timestamp DESC;
     """
     rows = await db.fetch_all(sql, (threshold, after))

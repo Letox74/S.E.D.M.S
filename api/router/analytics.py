@@ -23,13 +23,13 @@ analytics_router = APIRouter(
 
 
 @analytics_router.get(
-    path="/device/{device_id}/latest",
+    path="/latest",
     description="Get the lastes Analytics data from a Device",
     response_model=AnalyticsRead,
     status_code=status.HTTP_200_OK
 )
 async def get_latest_analytic(
-        device_id: Optional[UUID] = Path(default=..., description="The Device ID"),
+        device_id: Optional[UUID] = Query(default=None, description="The Device ID"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> AnalyticsRead | None:
     device_id = str(device_id) if device_id else None
@@ -42,13 +42,13 @@ async def get_latest_analytic(
 
 
 @analytics_router.get(
-    path="/device/{device_id}/history",
+    path="/history",
     description="Gets the Analytics History of the Device with optional arguments like dates and limits",
     response_model=list[AnalyticsRead],
     status_code=status.HTTP_200_OK
 )
 async def get_analytics_history(
-        device_id: Optional[UUID] = Path(default=..., description="The Device ID"),
+        device_id: Optional[UUID] = Query(default=None, description="The Device ID"),
         start_datetime: Optional[datetime] = Query(default=None, description="The start datetime"),
         end_datetime: Optional[datetime] = Query(default=None, description="The end datetime"),
         limit: Optional[int] = Query(default=None, description="A optional limit"),
@@ -65,13 +65,13 @@ async def get_analytics_history(
 
 
 @analytics_router.get(
-    path="/device/{device_id}/range",
+    path="/range",
     description="Get the Analytics data in a daterange",
     response_model=list[AnalyticsRead],
     status_code=status.HTTP_200_OK
 )
 async def get_analytics_range(
-        device_id: Optional[UUID] = Path(default=..., description="The Device ID"),
+        device_id: Optional[UUID] = Query(default=None, description="The Device ID"),
         start_datetime: datetime = Query(default=..., description="The start datetime"),
         end_datetime: datetime = Query(default=..., description="The end datetime"),
         db: DatabaseManager = Depends(get_db_session)
@@ -87,12 +87,12 @@ async def get_analytics_range(
 
 
 @analytics_router.delete(
-    path="/device/{device_id}/clear",
+    path="/clear",
     description="Clears the Analytics data",
     status_code=status.HTTP_200_OK
 )
 async def clear_analytics(
-        device_id: Optional[UUID] = Path(default=..., description="The Device ID"),
+        device_id: Optional[UUID] = Query(default=None, description="The Device ID"),
         before: Optional[datetime] = Query(default=None, description="Only clear before this datetime"),
         limit: Optional[int] = Query(default=None, description="A optional limit"),
         db: DatabaseManager = Depends(get_db_session)
@@ -108,12 +108,12 @@ async def clear_analytics(
 
 
 @analytics_router.get(
-    path="/device/{device_id}/count",
+    path="/count",
     description="Cont how many entries there are from this Device",
     status_code=status.HTTP_200_OK
 )
 async def get_analytics_count(
-        device_id: Optional[UUID] = Path(default=..., description="The Device ID"),
+        device_id: Optional[UUID] = Query(default=None, description="The Device ID"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> dict[str, str | int]:
     device_id = str(device_id) if device_id else None

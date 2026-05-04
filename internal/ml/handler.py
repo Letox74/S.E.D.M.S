@@ -83,7 +83,7 @@ def save_model_metadata(
 
     # get features importances
     importances = model.feature_importances_
-    names = model.feature_name_
+    names = model.feature_names_in_
     indices = np.argsort(importances)[::-1][:10]
 
     features = {names[i]: float(importances[i]) for i in indices}

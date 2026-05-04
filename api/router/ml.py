@@ -8,10 +8,10 @@ from fastapi.responses import StreamingResponse
 from api.dependencies import (
     get_db_session,
     validate_device_exists,
-    validate_device_has_telemetry,
     validate_daterange,
     validate_device_has_analytics,
     validate_predictions_exists,
+    validate_device_has_predictions,
     validate_enough_analytics
 )
 from core.config import PREDICTION_HORIZONS
@@ -74,7 +74,7 @@ async def retrain_models(
 )
 async def get_model_metadata(
         after: Optional[date] = Query(default=None, description="A date after what date the data should be returned"),
-        version: Optional[str] = Query(default=None, description="Get a specific version")
+        version: Optional[str] = Query(default="latest", description="Get a specific version")
 ) -> dict[str, dict[str, str | list[dict[str, str | dict[str, float | int]]]]] | None:
     return await ml_service.get_model_metadata(after, version)
 
@@ -106,7 +106,7 @@ async def get_latest_prediction(
 
     if device_id:
         await validate_device_exists(device_id, db)
-        await validate_device_has_telemetry(device_id, db)
+        await validate_device_has_predictions(device_id, db)
 
     return await ml_service.db_get_latest_prediction(device_id, db)
 
@@ -130,7 +130,7 @@ async def get_prediction_history(
 
     if device_id:
         await validate_device_exists(device_id, db)
-        await validate_device_has_telemetry(device_id, db)
+        await validate_device_has_predictions(device_id, db)
     daterange = await validate_daterange(start_datetime, end_datetime)
 
     return await ml_service.db_get_predictions_history(device_id, daterange, limit, db)
@@ -154,7 +154,7 @@ async def get_predictions_range(
 
     if device_id:
         await validate_device_exists(device_id, db)
-        await validate_device_has_telemetry(device_id, db)
+        await validate_device_has_predictions(device_id, db)
     daterange = await validate_daterange(start_datetime, end_datetime)
 
     return await ml_service.db_get_predictions_range(device_id, daterange, db)
@@ -177,7 +177,7 @@ async def clear_predictions(
 
     if device_id:
         await validate_device_exists(device_id, db)
-        await validate_device_has_telemetry(device_id, db)
+        await validate_device_has_predictions(device_id, db)
     deleted_rows = await ml_service.db_delete_predictions(device_id, before, limit, db)
 
     return {"deleted_rows": deleted_rows}
@@ -198,7 +198,7 @@ async def get_predictions_count(
 
     if device_id:
         await validate_device_exists(device_id, db)
-        await validate_device_has_telemetry(device_id, db)
+        await validate_device_has_predictions(device_id, db)
     count = await ml_service.db_predictions_count(device_id, db)
 
     return {"count": count}

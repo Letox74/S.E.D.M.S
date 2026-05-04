@@ -52,13 +52,13 @@ async def ingest_telemetry(
 
 
 @telemetry_router.get(
-    path="/device/{device_id}/latest",
+    path="/latest",
     description="Get the lastes Telemetry data from a Device",
     response_model=TelemetryRead,
     status_code=status.HTTP_200_OK
 )
 async def get_latest_telemetry(
-        device_id: Optional[UUID] = Path(default=..., description="The Device ID"),
+        device_id: Optional[UUID] = Query(default=None, description="The Device ID"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> TelemetryRead | None:
     device_id = str(device_id) if device_id else None
@@ -71,13 +71,13 @@ async def get_latest_telemetry(
 
 
 @telemetry_router.get(
-    path="/device/{device_id}/history",
+    path="/history",
     description="Gets the Telemetry History of the Device with optional arguments like dates and limits",
     response_model=list[TelemetryRead],
     status_code=status.HTTP_200_OK
 )
 async def get_telemetry_history(
-        device_id: Optional[UUID] = Path(default=..., description="The Device ID"),
+        device_id: Optional[UUID] = Query(default=None, description="The Device ID"),
         start_datetime: Optional[datetime] = Query(default=None, description="The start datetime"),
         end_datetime: Optional[datetime] = Query(default=None, description="The end datetime"),
         limit: Optional[int] = Query(default=20, ge=0, description="A optional limit"),
@@ -94,13 +94,13 @@ async def get_telemetry_history(
 
 
 @telemetry_router.get(
-    path="/device/{device_id}/range",
+    path="/range",
     description="Get the Telemetry data in a daterange",
     response_model=list[TelemetryRead],
     status_code=status.HTTP_200_OK
 )
 async def get_telemetry_range(
-        device_id: Optional[UUID] = Path(default=..., description="The Device ID"),
+        device_id: Optional[UUID] = Query(default=None, description="The Device ID"),
         start_datetime: datetime = Query(default=..., description="The start datetime"),
         end_datetime: datetime = Query(default=..., description="The end datetime"),
         db: DatabaseManager = Depends(get_db_session)
@@ -116,12 +116,12 @@ async def get_telemetry_range(
 
 
 @telemetry_router.delete(
-    path="/device/{device_id}/clear",
+    path="/clear",
     description="Clears the Telemetry data",
     status_code=status.HTTP_200_OK
 )
 async def clear_telemetry(
-        device_id: Optional[UUID] = Path(default=..., description="The Device ID"),
+        device_id: Optional[UUID] = Query(default=None, description="The Device ID"),
         before: Optional[datetime] = Query(default=None, description="Only clear before this datetime"),
         limit: Optional[int] = Query(default=50, ge=0, description="A optional limit"),
         db: DatabaseManager = Depends(get_db_session)
@@ -137,12 +137,12 @@ async def clear_telemetry(
 
 
 @telemetry_router.get(
-    path="/device/{device_id}/count",
+    path="/count",
     description="Cont how many entries there are from this Device",
     status_code=status.HTTP_200_OK
 )
 async def get_telemetry_count(
-        device_id: Optional[UUID] = Path(default=..., description="The Device ID"),
+        device_id: Optional[UUID] = Query(default=None, description="The Device ID"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> dict[str, str | int]:
     device_id = str(device_id) if device_id else None
@@ -209,7 +209,7 @@ async def get_battery_alerts(
     status_code=status.HTTP_200_OK
 )
 async def get_temperature_alerts(
-        threshold: float = Query(default=50, description="The threshold", ge=-20, le=100),
+        threshold: float = Query(default=40, description="The threshold", ge=-20, le=100),
         after: Optional[datetime] = Query(default=None, description="In after what timeslot it should get checked"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> list[TelemetryRead]:

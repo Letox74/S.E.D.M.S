@@ -133,6 +133,21 @@ async def validate_predictions_exists(db: DatabaseManager) -> None:
             detail=f"No Prediction data yet"
         )
 
+
+async def validate_device_has_predictions(device_id: str, db: DatabaseManager) -> None:
+    result = await db.fetch_one("""
+            SELECT 1
+            FROM predictions
+            WHERE device_id = ?
+        """, (device_id,))
+
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No Prediction data found for this Device: {device_id}"
+        )
+
+
 async def validate_enough_analytics(db: DatabaseManager) -> None:
     date = datetime.now(timezone.utc) - timedelta(hours=26)
 

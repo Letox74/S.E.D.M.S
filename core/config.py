@@ -1,4 +1,3 @@
-import json
 import os
 from pathlib import Path
 from typing import Never, Optional
@@ -31,9 +30,9 @@ OPENAPI_URL: Optional[str] = PREFIX + os.getenv("OPENAPI_URL")
 # CORS
 USE_CORS: bool = os.getenv("USE_CORS").lower().strip() in ("true", "1", "yes")
 ALLOW_CREDENTIALS: bool = os.getenv("ALLOW_CREDENTIALS").lower().strip() in ("true", "1", "yes")
-ALLOWED_ORIGINS: list[str] | list[Never] = json.loads(os.getenv("ALLOWED_ORIGINS"))
-ALLOWED_METHODS: list[str] | list[Never] = json.loads(os.getenv("ALLOWED_METHODS"))
-ALLOWED_HEADERS: list[str] | list[Never] = json.loads(os.getenv("ALLOWED_HEADERS"))
+ALLOWED_ORIGINS: list[str] | list[Never] = list(os.getenv("ALLOWED_ORIGINS"))
+ALLOWED_METHODS: list[str] | list[Never] = list(os.getenv("ALLOWED_METHODS"))
+ALLOWED_HEADERS: list[str] | list[Never] = list(os.getenv("ALLOWED_HEADERS"))
 
 # rate limits
 DEFAULT_RATE_LIMIT: str = os.getenv("DEFAULT_RATE_LIMIT")
@@ -46,8 +45,11 @@ TELEMETRY_LIMIT: int = int(os.getenv("TELEMETRY_LIMIT"))
 RETRAIN_SCHEDULER: Optional[str] = None
 
 # four models in total
-PREDICTION_HORIZONS: list[int] = json.loads(os.getenv("PREDICTION_HORIZONS")) # in minutes
+PREDICTION_HORIZONS: list[int] = list(map(lambda x: int(x), os.getenv("PREDICTION_HORIZONS").split(", "))) # in minutes
 # can be refactored later, that the user decides the three models
 
 # other stuff
 IGNORE_WARNINGS: bool = os.getenv("IGNORE_WARNINGS").lower().strip() in ("true", "1", "yes")
+
+# frontend
+FRONTEND_PASSWORD: str = os.getenv("FRONTEND_PASSWORD")

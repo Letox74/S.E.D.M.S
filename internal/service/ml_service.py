@@ -169,6 +169,18 @@ async def get_model_metadata(
     with open(METADATA_PATH, "r", encoding="utf-8") as metadata:
         data = json.load(metadata)["models"]
 
+    if isinstance(version, str) and version.lower() == "latest":
+        return {
+            name: {
+                "current_version": model_info["current_version"],
+                "history": [
+                    history for history in model_info["history"]
+                    if history["version"] == model_info["current_version"]
+                ]
+            }
+            for name, model_info in data.items()
+        }
+
     return {
         name: {
             "current_version": model_info["current_version"],

@@ -1,18 +1,19 @@
 from dataclasses import dataclass
-from typing import Optional, Any
+from typing import Optional
 
 import httpx
+import streamlit as st
 from starlette import status
 
-from core.config import BASE_URL, PORT, PREFIX, API_KEY
+from core.config import BASE_URL, PORT, PREFIX, API_KEY, FRONTEND_PASSWORD
 
-URL = BASE_URL + str(PORT) + PREFIX
+URL = f"{BASE_URL}:{PORT}{PREFIX}"
 
 
 @dataclass(kw_only=True)
 class APIResponse:
     status_code: int
-    data: Optional[Any] = None
+    data: Optional[dict | list] = None
     error_detail: Optional[str] = None
 
     @property
@@ -25,7 +26,7 @@ class APIClient:
         self.base_url = base_url
         self._headers = {"API-KEY": api_key}
 
-    async def request(self, method: str, path: str, **kwargs) -> APIResponse:
+    def request(self, method: str, path: str, **kwargs) -> APIResponse:
         with httpx.Client(base_url=self.base_url, headers=self._headers) as client:
             try:
                 response = client.request(method, path, **kwargs)
@@ -38,8 +39,34 @@ class APIClient:
                 return APIResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_detail=str(e))
 
     # for the CSV Download
-    async def get_stream(self, path: str, **kwargs) -> bytes:
+    def get_stream(self, path: str, **kwargs) -> bytes:
         return httpx.get(f"{self.base_url}{path}", headers=self._headers, **kwargs).content
 
 
 api_client = APIClient(URL, API_KEY)
+
+
+def check_for_password_verification(main_page: bool = False) -> None:
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+
+    if not st.session_state.authenticated:
+        place_holder = st.empty()
+
+        if main_page:
+            if password := place_holder.text_input("Enter the password", type="password", placeholder="password..."):
+                if password == FRONTEND_PASSWORD:
+                    st.session_state.authenticated = True
+                    place_holder.empty()
+                    st.rerun()
+
+                else:
+                    st.error("Wrong password")
+                    st.stop()
+
+            st.stop()
+
+
+        else:
+            st.error("Not verified yet. Please go to the Dashboard to verify")
+            st.stop()
