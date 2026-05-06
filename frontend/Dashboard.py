@@ -96,7 +96,7 @@ st.subheader("Alerts")
 st.divider()
 
 with st.container():
-    st.write("**Battery**")
+    st.markdown("### Battery")
 
     empty_battery_alerts = st.empty()
     with empty_battery_alerts.status("Fetching the Battery alerts...", expanded=True):
@@ -113,7 +113,7 @@ with st.container():
 
 st.space("small")
 with st.container():
-    st.write("**Temperature**")
+    st.markdown("### Temperature")
 
     empty_temp_alerts = st.empty()
     with empty_temp_alerts.status("Fetching the temperature alerts...", expanded=True):
@@ -141,7 +141,7 @@ with empty_ml.status("Fetching the models data...", expanded=True):
     last_prediction = get_last_prediction()
 empty_ml.empty()
 
-st.write(f"Models: {"loaded" if loaded else "not loaded"}")
+st.write(f"**Models: {"loaded" if loaded else "not loaded"}**")
 st.space("xsmall")
 
 if not metadata["15min"]["history"]:
