@@ -5,9 +5,9 @@ import httpx
 import streamlit as st
 from starlette import status
 
-from core.config import BASE_URL, PORT, PREFIX, API_KEY, FRONTEND_PASSWORD
+from core.config import BASE_URL, API_PORT, PREFIX, API_KEY, FRONTEND_PASSWORD
 
-URL = f"{BASE_URL}:{PORT}{PREFIX}"
+URL = f"{BASE_URL}:{API_PORT}{PREFIX}"
 
 
 @dataclass(kw_only=True)

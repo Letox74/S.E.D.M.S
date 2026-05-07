@@ -33,15 +33,15 @@ with col1:
 with col2:
     st.markdown("### Telemetry & Analytics")
     st.write("""
-    The engine calculates key metrics like Peak, Min, Avg, and Std Dev for parameters 
-    such as Power, Current, and Temperature etc. It also tracks total operation hours 
+    The engine calculates key metrics like Peak, Min, Avg, and Std for parameters 
+    such as Power, Current, Temperature etc. It also tracks total operation hours 
     and computes an efficiency score to evaluate your device performance.
     """)
 
 with col3:
     st.markdown("### ML Forecasting")
     st.write("""
-    Our integrated machine learning models analyze historical patterns to predict 
+    The integrated machine learning models analyze historical patterns to predict 
     energy consumption (Wh). The system can forecast future demand for any 
     timeframe up to the next 24 hours.
     """)
@@ -55,7 +55,7 @@ with st.expander("See the tools used in this project"):
     st.markdown("""
     - **Frontend & Web UI:** [Streamlit](https://streamlit.io) (Hosted locally on your machine)
     - **Backend API:** FastAPI (Managing local data traffic and device communication)
-    - **Data Processing:** Pandas & NumPy for statistical analysis (Peak, Avg, Std Dev)
+    - **Data Processing:** Pandas & NumPy for statistical analysis (Peak, Avg, Std etc.)
     - **Machine Learning:** Scikit-Learn and LightGBM for Wh regression and forecasting
     - **Database:** Local storage for telemetry and analytical results (SQLite database)
     """)

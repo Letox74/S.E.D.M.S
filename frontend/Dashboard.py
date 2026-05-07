@@ -75,6 +75,19 @@ with empty_status.status("Fetching Overview data...", expanded=True):
 
     st.write("Getting the total kWh today...")
     total_kwh = get_total_kwh_today()
+
+    st.write("Getting the Battery alerts...")
+    battery_alerts = get_battery_alerts()
+
+    st.write("Getting the temperature alerts...")
+    temp_alerts = get_temperature_alerts()
+
+    st.write("Fetiching the status and metadata...")
+    loaded, metadata = get_model_loaded_and_version()
+
+    st.write("Fetiching last prediction")
+    last_prediction = get_last_prediction()
+
 empty_status.empty()
 
 # columns
@@ -95,51 +108,38 @@ st.space("medium")
 st.subheader("Alerts")
 st.divider()
 
-with st.container():
-    st.markdown("### Battery")
+tab_batt, tab_temp = st.tabs(["Battery Alerts", "Temperature Alerts"])
 
-    empty_battery_alerts = st.empty()
-    with empty_battery_alerts.status("Fetching the Battery alerts...", expanded=True):
-        st.write("Getting the Battery alerts...")
-        battery_alerts = get_battery_alerts()
-    empty_battery_alerts.empty()
-
+with tab_batt:
     st.metric("Total Devices", len(battery_alerts), border=True, help="How many Devices have low Battery")
 
-    with st.expander("Devices"):
-        for telemetry in battery_alerts:
-            st.write(
-                f"- {telemetry["device_name"]} ({telemetry["device_location"]}): {telemetry["current_battery_percentage"]}%")
+    if battery_alerts:
+        st.dataframe(battery_alerts, column_config={
+            "current_battery_percentage": st.column_config.ProgressColumn("Battery", format="%d%%"),
+            "device_name": "Device",
+            "device_location": "Location"
+        }, hide_index=True, use_container_width=True)
 
-st.space("small")
-with st.container():
-    st.markdown("### Temperature")
+    else:
+        st.success("All batteries are within normal range")
 
-    empty_temp_alerts = st.empty()
-    with empty_temp_alerts.status("Fetching the temperature alerts...", expanded=True):
-        st.write("Getting the temperature alerts...")
-        temp_alerts = get_temperature_alerts()
-    empty_temp_alerts.empty()
-
+with tab_temp:
     st.metric("Total Devices", len(temp_alerts), border=True, help="How many Devices have high temperature")
 
-    with st.expander("Devices"):
-        for telemetry in temp_alerts:
-            st.write(f"- {telemetry["device_name"]} ({telemetry["device_location"]}): {telemetry["temperature"]}°C")
+    if temp_alerts:
+        st.dataframe(temp_alerts, column_config={
+            "temperature": st.column_config.NumberColumn("Temperature", format="%d%°C"),
+            "device_name": "Device",
+            "device_location": "Location"
+        }, hide_index=True, use_container_width=True)
+
+    else:
+        st.success("No temperature anomalies detected")
 
 # ml area
 st.space("medium")
 st.subheader("ML")
 st.divider()
-
-empty_ml = st.empty()
-with empty_ml.status("Fetching the models data...", expanded=True):
-    st.write("Fetiching the status and metadata...")
-    loaded, metadata = get_model_loaded_and_version()
-
-    st.write("Fetiching last prediction")
-    last_prediction = get_last_prediction()
-empty_ml.empty()
 
 st.write(f"**Models: {"loaded" if loaded else "not loaded"}**")
 st.space("xsmall")
@@ -195,3 +195,8 @@ with ml_col3:
               help="The prediction period")
 
 st.metric("Predicted value", f"{last_prediction["predicted_load"]} Wh", border=True)
+
+
+# footer
+st.divider()
+st.caption("S.E.D.M.S - Open Source IoT Management System | [GitHub](https://github.com/Letox74/S.E.D.M.S)")
