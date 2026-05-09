@@ -6,6 +6,12 @@ import streamlit as st
 
 from utils import check_for_password_verification, api_client
 
+import os
+import sys
+
+# append path to allow imports from other folders
+sys.path.append(os.getcwd())
+
 st.set_page_config(layout="wide")
 
 TTL_CACHE_TIME = 60 * 30  # 30 minutes
@@ -114,11 +120,24 @@ with tab_batt:
     st.metric("Total Devices", len(battery_alerts), border=True, help="How many Devices have low Battery")
 
     if battery_alerts:
-        st.dataframe(battery_alerts, column_config={
-            "current_battery_percentage": st.column_config.ProgressColumn("Battery", format="%d%%"),
-            "device_name": "Device",
-            "device_location": "Location"
-        }, hide_index=True, use_container_width=True)
+        st.dataframe(
+            battery_alerts,
+            column_config={
+                "current_battery_percentage": st.column_config.ProgressColumn("Battery", format="%d%%"),
+                "device_name": st.column_config.TextColumn("Device"),
+                "device_location": st.column_config.TextColumn("Location"),
+                "timestamp": st.column_config.DatetimeColumn("Timestamp", format="DD.MM.YYYY HH:mm", timezone="utc"),
+                "id": None,
+                "devie_id": None,
+                "voltage": None,
+                "current": None,
+                "signal_strength": None,
+                "frequency": None,
+                "temperature": None
+            },
+            hide_index=True,
+            use_container_width=True
+        )
 
     else:
         st.success("All batteries are within normal range")
@@ -127,11 +146,24 @@ with tab_temp:
     st.metric("Total Devices", len(temp_alerts), border=True, help="How many Devices have high temperature")
 
     if temp_alerts:
-        st.dataframe(temp_alerts, column_config={
-            "temperature": st.column_config.NumberColumn("Temperature", format="%d%°C"),
-            "device_name": "Device",
-            "device_location": "Location"
-        }, hide_index=True, use_container_width=True)
+        st.dataframe(
+            temp_alerts,
+            column_config={
+                "temperature": st.column_config.NumberColumn("Temperature", format="%d%°C"),
+                "device_name": st.column_config.TextColumn("Device"),
+                "device_location": st.column_config.TextColumn("Location"),
+                "timestamp": st.column_config.DatetimeColumn("Timestamp", format="DD.MM.YYYY HH:mm", timezone="utc"),
+                "id": None,
+                "devie_id": None,
+                "voltage": None,
+                "current": None,
+                "signal_strength": None,
+                "frequency": None,
+                "current_battery_percentage": None,
+            },
+            hide_index=True,
+            use_container_width=True
+        )
 
     else:
         st.success("No temperature anomalies detected")
@@ -164,39 +196,44 @@ else:
 
         st.space("xsmall")
 
+ml_container = st.container()
+
+# footer (needs to be here, else it would not be shown if st.stop() is used)
+st.divider()
+st.caption("S.E.D.M.S - Open Source IoT Management System | [GitHub](https://github.com/Letox74/S.E.D.M.S)")
+
+# prediction part
 st.space("xsmall")
 if not last_prediction.is_success:
-    st.info("No Prediction found")
-    st.stop()
+    with ml_container:
+        st.info("No Prediction found")
+        st.stop()
 
 last_prediction["timestamp"] = datetime.fromisoformat(last_prediction["timestamp"]).replace(tzinfo=timezone.utc)
 
 # check if the prediction is already expired
 if (last_prediction["timestamp"] + timedelta(minutes=last_prediction["prediction_horizon_minutes"])
         < datetime.now(timezone.utc)):
-    st.write("Last Prediction already expired")
-    st.stop()
+    with ml_container:
+        st.write("Last Prediction already expired")
+        st.stop()
 
 # prepare the time values
 start_dt = last_prediction["timestamp"].strftime("%H:%M:%S")
 end_dt = (start_dt + timedelta(minutes=last_prediction["prediction_horizon_minutes"])).strftime("%H:%M:%S")
 prediction_value = last_prediction["predicted_load"]
 
-ml_col1, ml_col2, ml_col3 = st.columns(3)
+with ml_container:
+    ml_col1, ml_col2, ml_col3 = st.columns(3)
 
-with ml_col1:
-    st.metric("Start time", start_dt, border=True, help="The time the when the prediction was made")
+    with ml_col1:
+        st.metric("Start time", start_dt, border=True, help="The time the when the prediction was made")
 
-with ml_col2:
-    st.metric("End time", end_dt, border=True, help="The time by which it was predicted")
+    with ml_col2:
+        st.metric("End time", end_dt, border=True, help="The time by which it was predicted")
 
-with ml_col3:
-    st.metric("Period", f"{last_prediction["prediction_horizon_minutes"]} Min.", border=True,
-              help="The prediction period")
+    with ml_col3:
+        st.metric("Period", f"{last_prediction["prediction_horizon_minutes"]} Min.", border=True,
+                  help="The prediction period")
 
-st.metric("Predicted value", f"{last_prediction["predicted_load"]} Wh", border=True)
-
-
-# footer
-st.divider()
-st.caption("S.E.D.M.S - Open Source IoT Management System | [GitHub](https://github.com/Letox74/S.E.D.M.S)")
+    st.metric("Predicted value", f"{last_prediction["predicted_load"]} Wh", border=True)
