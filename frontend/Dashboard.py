@@ -1,3 +1,11 @@
+import sys
+from pathlib import Path
+
+# append path to allow imports from other folders
+current_dir = str(Path(__file__).resolve().parent.parent)
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+
 from datetime import datetime, timezone, date, time, timedelta
 from typing import Any
 
@@ -5,12 +13,11 @@ import numpy as np
 import streamlit as st
 
 from utils import check_for_password_verification, api_client
+from core.config import IGNORE_WARNINGS
 
-import os
-import sys
-
-# append path to allow imports from other folders
-sys.path.append(os.getcwd())
+if IGNORE_WARNINGS:
+    import warnings
+    warnings.filterwarnings("ignore")
 
 st.set_page_config(layout="wide")
 
@@ -68,11 +75,8 @@ st.divider()
 
 check_for_password_verification(main_page=True)
 
-# metrics at the top
-st.subheader("Overview")
-
-empty_status = st.empty()
-with empty_status.status("Fetching Overview data...", expanded=True):
+# fetching data
+with st.status("Fetching data...", expanded=True) as status:
     st.write("Getting the active Device count...")
     device_count = get_active_device_count()
 
@@ -94,7 +98,10 @@ with empty_status.status("Fetching Overview data...", expanded=True):
     st.write("Fetiching last prediction")
     last_prediction = get_last_prediction()
 
-empty_status.empty()
+    status.update(label="Fetching data complete", expanded=False, state="complete")
+
+# metrics at the top
+st.subheader("Overview")
 
 # columns
 overview_col1, overview_col2, overview_col3 = st.columns([3, 4, 5])

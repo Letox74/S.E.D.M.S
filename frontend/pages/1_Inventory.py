@@ -1,9 +1,10 @@
+from datetime import datetime
+from typing import Any
+
+import pandas as pd
 import streamlit as st
 
 from frontend.utils import check_for_password_verification, api_client
-from typing import Any
-import pandas as pd
-from datetime import datetime
 from internal.schemas.device_models import DeviceTypes, DeviceStatus, DeviceUpdate, DeviceCreate
 
 st.set_page_config(layout="wide")
@@ -17,16 +18,16 @@ def fetch_device_fleet() -> Any:
     return api_client.request("GET", "/devices/").data
 
 
-def update_device(data: DeviceUpdate, device_id: str) -> None:
-    api_client.request("PATCH", f"/devices/{device_id}", json={"data": data.model_dump()})
-
+def update_device(data: DeviceUpdate, device_id: str) -> None | str:
+    result = api_client.request("PATCH", f"/devices/{device_id}", json={"data": data.model_dump()})
+    return result.data["detail"] if not result.is_success else None
 
 def delete_device(device_id: str) -> None:
     api_client.request("DELETE", f"/devices/{device_id}")
 
 
 def register_new_device(data: DeviceCreate) -> None:
-    api_client.request("POST", "/devices/", json={"data": data.model_dump()})
+   api_client.request("POST", "/devices/", json={"data": data.model_dump()})
 
 
 # header and etc.
@@ -76,7 +77,7 @@ with tab_list:
         )
 
         # csv export
-        _, col_exp = st.columns([8, 1])
+        _, col_exp = st.columns([6, 1])
         with col_exp:
             csv = df.to_csv(index=False).encode("utf-8")
             st.download_button(
@@ -104,11 +105,6 @@ with tab_manage:
 
             with col_edit1:
                 new_name = st.text_input("Device Name", value=selected_device.get("name", ""), max_chars=20)
-                new_type = st.selectbox(
-                    "Type",
-                    DeviceTypes.values(),
-                    index=DeviceTypes.values().index(selected_device.get("type", "smart_plug"))
-                )
                 new_loc = st.text_input("Location", value=selected_device.get("location", ""), max_chars=30)
                 new_desc = st.text_area("Description", value=selected_device.get("description", ""), height=80, max_chars=200)
 
@@ -123,28 +119,39 @@ with tab_manage:
                                        help="If the device is currently active")
 
             # save button
+            st.space("xsmall")
             if st.form_submit_button("Save Changes", type="primary", use_container_width=True):
-                # strip the inputs
-                new_name, new_loc, new_firmware, new_desc = [i.strip() for i in
-                                                             (new_name, new_loc, new_firmware, new_desc)
-                                                             if i is not None]
-
                 # check for unfilled params
                 if not all((new_name, new_loc, new_firmware)):
                     st.error("Oops, any of those params is unfilled: Device Name, Location or Firmware Version")
                     st.stop()
 
+                # strip the inputs
+                if new_desc:
+                    new_name, new_loc, new_firmware, new_desc = [i.strip() for i in
+                                                                 (new_name, new_loc, new_firmware, new_desc)
+                                                                 if i is not None]
+
+                else:
+                    new_name, new_loc, new_firmware = [i.strip() for i in
+                                                                 (new_name, new_loc, new_firmware)
+                                                                 if i is not None]
+
+
                 updates = DeviceUpdate(
                     name=new_name,
-                    type=new_type,
                     firmware_version=new_firmware,
                     status=new_status,
                     location=new_loc,
                     is_active=new_active
                 )
 
-                update_device(updates, selected_device["id"])
-                st.toast(f"Details for {new_name} updated successfully")
+                result = update_device(updates, selected_device["id"])
+                if not isinstance(result, str):
+                    st.toast(f"Details for {new_name} updated successfully")
+
+                else:
+                    st.info(result)
 
         # delete device
         st.space("medium")
@@ -168,7 +175,7 @@ with tab_manage:
 with tab_register:
     st.subheader("Add new Device")
 
-    with st.form("registration_form", clear_on_submit=True):
+    with st.form("registration_form"):
         col_f1, col_f2 = st.columns(2)
 
         with col_f1:
@@ -193,16 +200,22 @@ with tab_register:
 
         st.caption("Only the description is optional")
 
-        submit_button = st.form_submit_button("Register Device", type="primary")
-
-        if submit_button:
-            name, dev_type, loc, desc, firmware = [i.strip() for i in
-                                                   (name, dev_type, loc, desc, firmware)
-                                                   if i is not None]
-
-            if not all((name, dev_type, loc, desc)):
-                st.error("Please fill in all required fields")  #
+        if st.form_submit_button("Register Device", type="primary", use_container_width=True):
+            # check if all fields are filled
+            if not all((name, dev_type, loc, firmware)):
+                st.error("Please fill in all required fields")
                 st.stop()
+
+            if desc:
+                name, dev_type, loc, desc, firmware = [i.strip() for i in
+                                                       (name, dev_type, loc, desc, firmware)
+                                                       if i is not None]
+
+            else:
+                name, dev_type, loc, firmware = [i.strip() for i in
+                                                       (name, dev_type, loc, firmware)
+                                                       if i is not None]
+
 
             new_device = DeviceCreate(
                 name=name,
@@ -213,6 +226,7 @@ with tab_register:
                 is_active=active,
                 has_battery=battery
             )
+            register_new_device(new_device)
             st.toast(f"Device '{name}' successfully registered")
 
 # footer

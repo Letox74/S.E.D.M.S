@@ -184,26 +184,12 @@ async def db_delete(
     return deleted_rows
 
 
-def _get_count_sql(device_id: Optional[str], table_name: str) -> str:
-    if table_name == "predictions":
-        return f"""
-            SELECT COUNT(*)
-            FROM {table_name} AS T01
-            {"WHERE device_id = ?" if device_id else ""};
-        """
-
-    return f"""
-        SELECT
-            COUNT(T01.*) AS count,
-            T02.name     AS device_name,
-            T02.location AS device_location
-            
+async def db_count(device_id: Optional[str], table_name: str, db: DatabaseManager) -> int:
+    sql = f"""
+        SELECT COUNT(*) AS count
         FROM {table_name} AS T01
-        JOIN devcies AS T02 ON T01.device_id = T02.id
         {"WHERE device_id = ?" if device_id else ""};
     """
-
-async def db_count(device_id: Optional[str], table_name: str, db: DatabaseManager) -> int:
-    row = await db.fetch_one(_get_count_sql(device_id, table_name), (device_id,) if device_id else ())
+    row = await db.fetch_one(sql, (device_id,) if device_id else ())
 
     return row["count"]  # access column "count"

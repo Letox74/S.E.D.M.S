@@ -219,13 +219,13 @@ async def db_update_device(device_id: str, data: DeviceUpdate, db: DatabaseManag
     changes = data.model_dump(exclude_unset=True, exclude_none=True)  # exclude_unset and exclude_none to retrieve only the fields need to be updated
 
     if "status" in changes.keys():
-        await _update_status_log(device_id, changes["status"], db)
-
         if changes.get("is_active") and changes["status"] != "online":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="cannot change if is active is true and the status is not online"
             )
+
+        await _update_status_log(device_id, changes["status"], db)
 
     if not changes:
         return old_device

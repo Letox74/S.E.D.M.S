@@ -50,7 +50,7 @@ PREDICTION_HORIZONS: list[int] = [15, 60, 360, 1440] # in minutes
 # can be refactored later, that the user decides the three models
 
 # other stuff
-IGNORE_WARNINGS: bool = False
+IGNORE_WARNINGS: bool = True
 
 # frontend
 FRONTEND_PASSWORD: str = os.getenv("FRONTEND_PASSWORD")
