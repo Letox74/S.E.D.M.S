@@ -121,22 +121,15 @@ with tab_manage:
             # save button
             st.space("xsmall")
             if st.form_submit_button("Save Changes", type="primary", use_container_width=True):
+                inputs = [new_name, new_loc, new_firmware, new_desc]
+
+                # strip the inputs
+                new_name, new_loc, new_firmware, new_desc = [i.strip() if i else i for i in inputs]
+
                 # check for unfilled params
                 if not all((new_name, new_loc, new_firmware)):
                     st.error("Oops, any of those params is unfilled: Device Name, Location or Firmware Version")
                     st.stop()
-
-                # strip the inputs
-                if new_desc:
-                    new_name, new_loc, new_firmware, new_desc = [i.strip() for i in
-                                                                 (new_name, new_loc, new_firmware, new_desc)
-                                                                 if i is not None]
-
-                else:
-                    new_name, new_loc, new_firmware = [i.strip() for i in
-                                                                 (new_name, new_loc, new_firmware)
-                                                                 if i is not None]
-
 
                 updates = DeviceUpdate(
                     name=new_name,
@@ -201,21 +194,15 @@ with tab_register:
         st.caption("Only the description is optional")
 
         if st.form_submit_button("Register Device", type="primary", use_container_width=True):
+            inputs = [name, dev_type, loc, desc, firmware]
+
+            # strip the inputs
+            name, dev_type, loc, desc, firmware = [i.strip() if i else i for i in inputs]
+
             # check if all fields are filled
             if not all((name, dev_type, loc, firmware)):
                 st.error("Please fill in all required fields")
                 st.stop()
-
-            if desc:
-                name, dev_type, loc, desc, firmware = [i.strip() for i in
-                                                       (name, dev_type, loc, desc, firmware)
-                                                       if i is not None]
-
-            else:
-                name, dev_type, loc, firmware = [i.strip() for i in
-                                                       (name, dev_type, loc, firmware)
-                                                       if i is not None]
-
 
             new_device = DeviceCreate(
                 name=name,
