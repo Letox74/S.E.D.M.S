@@ -22,22 +22,21 @@ def fetch_device_fleet() -> Any:
 
 @st.cache_data(ttl=60)
 def get_telemetry_data(device_id, since) -> Any:
-    return api_client.request("GET", f"/telemetry/history",
-                              params={"device_id": device_id, "start_datetime": since}).data
+    params = {k: v for k, v in zip(["device_id", "start_datetime"], [device_id, since]) if v}
+    return api_client.request("GET", f"/telemetry/history", params=params).data
 
 
 @st.cache_data(ttl=60)
 def get_analytics_data(device_id, since) -> Any:
-    return api_client.request("GET", f"/analytics/history",
-                              params={"device_id": device_id, "start_datetime": since}).data
+    params = {k: v for k, v in zip(["device_id", "start_datetime"], [device_id, since]) if v}
+    return api_client.request("GET", f"/analytics/history",  params=params).data
 
 
 check_for_password_verification()
 
 # get the users timezone
-tz_res = st_javascript("Intl.DateTimeFormat().resolvedOptions().timeZone") # get the users browser timezone
+tz_res = st_javascript("Intl.DateTimeFormat().resolvedOptions().timeZone")  # get the users browser timezone
 user_tz = pytz.timezone(tz_res) if tz_res else pytz.utc
-
 
 # sidebar for filters
 with st.sidebar:
@@ -47,8 +46,8 @@ with st.sidebar:
     device_list = fetch_device_fleet()
     device_options = {f"{device["name"]} ({device["location"]})": device["id"] for device in device_list}
 
-    selected_label = st.selectbox("Select Device", options=list(device_options.keys()))
-    selected_id = device_options[selected_label]
+    selected_label = st.selectbox("Select Device", options=["all devices"] + list(device_options.keys()))
+    selected_id = device_options[selected_label] if selected_label != "all devices" else None
 
     # time filter
     st.subheader("Timeframe")
@@ -69,6 +68,7 @@ with st.sidebar:
     display_time = after_datetime.astimezone(user_tz)
     st.info(f"Showing data since: \n\n**{display_time.strftime("%Y-%m-%d %H:%M")}**")
 
+
 # page content
 # quick func to shift all timestamps in the users tz
 def localize_tz(df: pd.DataFrame) -> pd.DataFrame:
@@ -79,6 +79,7 @@ def localize_tz(df: pd.DataFrame) -> pd.DataFrame:
     df["timestamp"] = df["timestamp"].dt.tz_convert(user_tz)
 
     return df
+
 
 # title and etc.
 st.header("Monitoring")
@@ -173,13 +174,19 @@ else:
         st.plotly_chart(fig_energy, use_container_width=True)
 
     with col_right:
-        st.subheader("Current Efficiency")
-        # gauge chart for the current efficiency score
-        current_score = df_analytics["efficiency_score"].iloc[-1] if not df_analytics.empty else 0
+        st.subheader("Current Efficiency" if selected_id else "Average efficiency score over the last 15 minutes")
+        if selected_id:
+            efficiency_score = df_analytics["efficiency_score"].iloc[-1] if not df_analytics.empty else 0
 
+        else:
+            last_time = df_analytics["timestamp"].max()
+            mask = df_analytics["timestamp"] > last_time - pd.Timedelta(minutes=15)
+            efficiency_score = df_analytics["efficiency_score"].mean()
+
+        # gauge chart for the current efficiency score or the average if all devices are selected
         fig_gauge = go.Figure(go.Indicator(
             mode="gauge+number",
-            value=current_score,
+            value=efficiency_score,
             domain={"x": [0, 1], "y": [0, 1]},
             title={"text": "Efficiency Score (%)"},
             gauge={
