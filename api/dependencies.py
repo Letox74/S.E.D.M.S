@@ -149,10 +149,12 @@ async def validate_device_has_predictions(device_id: str, db: DatabaseManager) -
 
 
 async def validate_enough_analytics(db: DatabaseManager) -> None:
-    date = datetime.now(timezone.utc) - timedelta(hours=26)
+    date = datetime.now(timezone.utc) - timedelta(hours=2)
 
     sql = """
-        SELECT MIN(timestamp) AS timestamp
+        SELECT 
+            MIN(timestamp) AS timestamp,
+            COUNT(*)       AS count
         FROM analytics
     """
     row = await db.fetch_one(sql)
@@ -163,7 +165,7 @@ async def validate_enough_analytics(db: DatabaseManager) -> None:
             detail="No analtics data yet"
         )
 
-    if datetime.fromisoformat(row["timestamp"].replace(" ", "T")).replace(tzinfo=timezone.utc) < date:
+    if datetime.fromisoformat(row["timestamp"]).replace(tzinfo=timezone.utc) > date:  # and row["count"] < 500
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Not enough data yet"

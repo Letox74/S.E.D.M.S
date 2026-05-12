@@ -80,7 +80,7 @@ async def get_telemetry_history(
         device_id: Optional[UUID] = Query(default=None, description="The Device ID"),
         start_datetime: Optional[datetime] = Query(default=None, description="The start datetime"),
         end_datetime: Optional[datetime] = Query(default=None, description="The end datetime"),
-        limit: Optional[int] = Query(default=20, ge=0, description="A optional limit"),
+        limit: Optional[int] = Query(default=None, ge=0, description="A optional limit"),
         db: DatabaseManager = Depends(get_db_session)
 ) -> list[TelemetryRead] | list[Never]:
     device_id = str(device_id) if device_id else None

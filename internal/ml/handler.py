@@ -13,7 +13,7 @@ from sklearn.pipeline import Pipeline
 
 from database.connection import DatabaseManager
 
-app_logger = logging.getLogger("App")
+ml_logger = logging.getLogger("ML")
 
 MODELS_DIR = Path(__file__).parent.resolve() / "models"
 
@@ -30,7 +30,7 @@ def load_active_models(model_name: Literal["15min", "1h", "6h", "24h"]) -> tuple
     if not all(path.exists() for path in (LGBM_PATH_15min, LGBM_PATH_1h, LGBM_PATH_6h, LGBM_PATH_24h, ISO_FOREST_PATH)):
         return None
 
-    with open(MODELS_DIR / f"lgbm_model_{model_name}", "rb") as lgbm_file:
+    with open(MODELS_DIR / f"lgbm_model_{model_name}.pkl", "rb") as lgbm_file:
         lgbm_model = pickle.load(lgbm_file)
 
     with open(ISO_FOREST_PATH, "rb") as iso_forest_file:
@@ -41,10 +41,11 @@ def load_active_models(model_name: Literal["15min", "1h", "6h", "24h"]) -> tuple
 
 def save_model(model: LGBMRegressor | Pipeline, model_name: Optional[Literal["15min", "1h", "6h", "24h"]]) -> None:
     if isinstance(model, LGBMRegressor):
-        with open(MODELS_DIR / f"lgbm_model_{model_name}", "wb") as lgbm_file:
+        with open(MODELS_DIR / f"lgbm_model_{model_name}.pkl", "wb") as lgbm_file:
             pickle.dump(model, lgbm_file)
+            return
 
-    with open(ISO_FOREST_PATH, "rb") as iso_forest_file:
+    with open(ISO_FOREST_PATH, "wb") as iso_forest_file:
         pickle.dump(model, iso_forest_file)
 
 
@@ -78,7 +79,7 @@ def save_model_metadata(
     with open(METADATA_PATH, "r", encoding="utf-8") as metadata:
         metadata_json = json.load(metadata)
 
-    new_version = _increment_version(metadata_json["models"]["model_name"]["current_version"])
+    new_version = _increment_version(metadata_json["models"][model_name]["current_version"])
     current_date = date.today().strftime("%Y-%m-%d")
 
     # get features importances
@@ -103,7 +104,7 @@ def save_model_metadata(
     with open(METADATA_PATH, "w", encoding="utf-8") as metadata:
         json.dump(metadata_json, metadata, ensure_ascii=True, indent=4)
 
-    app_logger.info(f"Model updated to version {new_version}, RMSE: {metrics["rmse"]}")
+    ml_logger.info(f"Model updated to version {new_version}, RMSE: {metrics["rmse"]}")
 
 
 def _get_aggregations() -> dict[str, str]:
@@ -128,13 +129,14 @@ async def get_raw_data(device_id: Optional[str], after: Optional[datetime], db: 
         where_clause.append("T01.device_id = ?")
     if after:
         where_clause.append("T01.timestamp > ?")
-    where_str = f"WHRE {" AND ".join(where_clause)}" if where_clause else ""
+    where_str = f"WHERE {" AND ".join(where_clause)}" if where_clause else ""
 
     sql = f"""
         SELECT
+            T01.device_id,
             T01.avg_power,
             T01.std_power,
-            T01.avg_voltage
+            T01.avg_voltage,
             T01.avg_temperature,
             T01.efficiency_score,
             T01.energy_consumption,
@@ -158,6 +160,7 @@ async def get_raw_data(device_id: Optional[str], after: Optional[datetime], db: 
 
     df = pd.DataFrame([dict(row) for row in rows])
     df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce", yearfirst=True)
+    df = df.dropna(subset=["timestamp"])
     df.set_index("timestamp", inplace=True)
 
     df.resample(f"15min").agg(_get_aggregations())  # lowest intervall of the three models

@@ -1,29 +1,397 @@
 {
-  "last_updated": "",
-  "models": {
-    "15min": {
-      "current_version":  "",
-      "history": [
-
-      ]
-    },
-    "1h": {
-      "current_version": "",
-      "history": [
-
-      ]
-    },
-    "6h": {
-      "current_version": "",
-      "history": [
-
-      ]
-    },
-    "24h": {
-      "current_version": "",
-      "history": [
-
-      ]
+    "last_updated": "2026-05-12",
+    "models": {
+        "15min": {
+            "current_version": "0.0.3",
+            "history": [
+                {
+                    "version": "0.0.3",
+                    "date": "2026-05-12",
+                    "metrics": {
+                        "mse": 51295084.13,
+                        "rmse": 7162.06,
+                        "mae": 1534.39,
+                        "r2": 0.94
+                    },
+                    "features": {
+                        "current_battery_percentage_lag1": 188.0,
+                        "current_battery_percentage": 107.0,
+                        "std_power": 71.0,
+                        "avg_voltage_rolling": 50.0,
+                        "avg_temperature": 42.0,
+                        "avg_power": 41.0,
+                        "energy_consumption_lag1": 41.0,
+                        "type": 40.0,
+                        "std_power_lag1": 40.0,
+                        "avg_voltage": 39.0
+                    },
+                    "best_params": {
+                        "n_estimators": 286,
+                        "max_depth": 3,
+                        "learning_rate": 0.2037300441363032,
+                        "num_leaves": 90,
+                        "min_data_in_leaf": 47,
+                        "feature_fraction": 0.6156640766470822,
+                        "min_gain_to_split": 0.3168167976778612
+                    }
+                },
+                {
+                    "version": "0.0.2",
+                    "date": "2026-05-12",
+                    "metrics": {
+                        "mse": 50633999.95,
+                        "rmse": 7115.76,
+                        "mae": 1454.28,
+                        "r2": 0.94
+                    },
+                    "features": {
+                        "current_battery_percentage": 412.0,
+                        "current_battery_percentage_lag1": 368.0,
+                        "avg_temperature_rolling": 158.0,
+                        "std_power": 151.0,
+                        "energy_consumption_lag1": 114.0,
+                        "avg_temperature": 105.0,
+                        "std_power_lag1": 100.0,
+                        "avg_voltage": 99.0,
+                        "avg_voltage_rolling": 91.0,
+                        "avg_power": 88.0
+                    },
+                    "best_params": {
+                        "n_estimators": 709,
+                        "max_depth": 4,
+                        "learning_rate": 0.05052379448363434,
+                        "num_leaves": 48,
+                        "min_data_in_leaf": 26,
+                        "feature_fraction": 0.8343092013594828,
+                        "min_gain_to_split": 0.5265580062163606
+                    }
+                },
+                {
+                    "version": "0.0.1",
+                    "date": "2026-05-12",
+                    "metrics": {
+                        "mse": 49970047.24,
+                        "rmse": 7068.95,
+                        "mae": 1412.44,
+                        "r2": 0.95
+                    },
+                    "features": {
+                        "current_battery_percentage": 231.0,
+                        "current_battery_percentage_lag1": 145.0,
+                        "std_power": 48.0,
+                        "energy_consumption_lag1": 40.0,
+                        "avg_temperature": 36.0,
+                        "std_power_lag1": 32.0,
+                        "avg_voltage": 31.0,
+                        "avg_voltage_rolling": 31.0,
+                        "avg_temperature_rolling": 29.0,
+                        "avg_power": 28.0
+                    },
+                    "best_params": {
+                        "n_estimators": 710,
+                        "max_depth": 3,
+                        "learning_rate": 0.09570121151112858,
+                        "num_leaves": 54,
+                        "min_data_in_leaf": 27,
+                        "feature_fraction": 0.8410654731390703,
+                        "min_gain_to_split": 0.3867791338107991
+                    }
+                }
+            ]
+        },
+        "1h": {
+            "current_version": "0.0.3",
+            "history": [
+                {
+                    "version": "0.0.3",
+                    "date": "2026-05-12",
+                    "metrics": {
+                        "mse": 85605121.98,
+                        "rmse": 9252.3,
+                        "mae": 3320.96,
+                        "r2": 0.91
+                    },
+                    "features": {
+                        "energy_consumption_lag1": 104.0,
+                        "current_battery_percentage": 58.0,
+                        "type": 54.0,
+                        "energy_consumption_lag2": 51.0,
+                        "avg_temperature_rolling": 47.0,
+                        "avg_voltage_rolling": 38.0,
+                        "avg_power": 37.0,
+                        "std_power": 25.0,
+                        "avg_voltage": 18.0,
+                        "avg_power_lag2": 11.0
+                    },
+                    "best_params": {
+                        "n_estimators": 384,
+                        "max_depth": 3,
+                        "learning_rate": 0.06052417589072323,
+                        "num_leaves": 36,
+                        "min_data_in_leaf": 23,
+                        "feature_fraction": 0.9980288002194736,
+                        "min_gain_to_split": 0.62690587168941
+                    }
+                },
+                {
+                    "version": "0.0.2",
+                    "date": "2026-05-12",
+                    "metrics": {
+                        "mse": 86937355.4,
+                        "rmse": 9324.02,
+                        "mae": 3257.36,
+                        "r2": 0.9
+                    },
+                    "features": {
+                        "avg_temperature_rolling": 211.0,
+                        "energy_consumption_lag1": 169.0,
+                        "avg_power": 89.0,
+                        "avg_voltage_rolling": 75.0,
+                        "energy_consumption_lag2": 73.0,
+                        "std_power": 72.0,
+                        "avg_temperature": 68.0,
+                        "avg_voltage": 67.0,
+                        "avg_power_rolling": 47.0,
+                        "current_battery_percentage": 46.0
+                    },
+                    "best_params": {
+                        "n_estimators": 689,
+                        "max_depth": 9,
+                        "learning_rate": 0.15109176982165273,
+                        "num_leaves": 32,
+                        "min_data_in_leaf": 23,
+                        "feature_fraction": 0.8446977938620642,
+                        "min_gain_to_split": 0.683034337458386
+                    }
+                },
+                {
+                    "version": "0.0.1",
+                    "date": "2026-05-12",
+                    "metrics": {
+                        "mse": 86876845.24,
+                        "rmse": 9320.77,
+                        "mae": 3794.45,
+                        "r2": 0.9
+                    },
+                    "features": {
+                        "current_battery_percentage": 251.0,
+                        "current_battery_percentage_lag1": 179.0,
+                        "energy_consumption_lag1": 90.0,
+                        "avg_voltage_rolling": 68.0,
+                        "type": 62.0,
+                        "avg_temperature": 59.0,
+                        "energy_consumption_lag2": 57.0,
+                        "avg_power": 48.0,
+                        "std_power": 46.0,
+                        "avg_temperature_rolling": 43.0
+                    },
+                    "best_params": {
+                        "n_estimators": 561,
+                        "max_depth": 2,
+                        "learning_rate": 0.042388126481132986,
+                        "num_leaves": 42,
+                        "min_data_in_leaf": 11,
+                        "feature_fraction": 0.6166706553309584,
+                        "min_gain_to_split": 0.6530758970142702
+                    }
+                }
+            ]
+        },
+        "6h": {
+            "current_version": "0.0.3",
+            "history": [
+                {
+                    "version": "0.0.3",
+                    "date": "2026-05-12",
+                    "metrics": {
+                        "mse": 170958551.3,
+                        "rmse": 13075.11,
+                        "mae": 5043.06,
+                        "r2": 0.81
+                    },
+                    "features": {
+                        "avg_temperature_rolling": 1938.0,
+                        "avg_voltage_rolling": 667.0,
+                        "energy_consumption_lag1": 314.0,
+                        "avg_power": 301.0,
+                        "energy_consumption_lag2": 223.0,
+                        "avg_power_rolling": 177.0,
+                        "avg_power_lag2": 170.0,
+                        "avg_temperature": 159.0,
+                        "avg_voltage": 156.0,
+                        "avg_temperature_lag1": 139.0
+                    },
+                    "best_params": {
+                        "n_estimators": 482,
+                        "max_depth": 7,
+                        "learning_rate": 0.22665458352302634,
+                        "num_leaves": 19,
+                        "min_data_in_leaf": 10,
+                        "feature_fraction": 0.9812720160779875,
+                        "min_gain_to_split": 0.6278024101903316
+                    }
+                },
+                {
+                    "version": "0.0.2",
+                    "date": "2026-05-12",
+                    "metrics": {
+                        "mse": 173774119.26,
+                        "rmse": 13182.34,
+                        "mae": 5232.11,
+                        "r2": 0.81
+                    },
+                    "features": {
+                        "avg_temperature_rolling": 9032.0,
+                        "avg_voltage_rolling": 2612.0,
+                        "avg_power": 2296.0,
+                        "energy_consumption_lag1": 2106.0,
+                        "energy_consumption_lag2": 1607.0,
+                        "avg_temperature": 1592.0,
+                        "std_power": 1522.0,
+                        "avg_temperature_lag1": 1237.0,
+                        "avg_voltage": 1083.0,
+                        "avg_power_lag2": 867.0
+                    },
+                    "best_params": {
+                        "n_estimators": 983,
+                        "max_depth": 9,
+                        "learning_rate": 0.029516013388790764,
+                        "num_leaves": 116,
+                        "min_data_in_leaf": 17,
+                        "feature_fraction": 0.7990110392034439,
+                        "min_gain_to_split": 0.6173727323726454
+                    }
+                },
+                {
+                    "version": "0.0.1",
+                    "date": "2026-05-12",
+                    "metrics": {
+                        "mse": 173732509.13,
+                        "rmse": 13180.76,
+                        "mae": 5093.75,
+                        "r2": 0.81
+                    },
+                    "features": {
+                        "avg_temperature_rolling": 4578.0,
+                        "avg_voltage_rolling": 1750.0,
+                        "avg_power": 1476.0,
+                        "energy_consumption_lag1": 1097.0,
+                        "energy_consumption_lag2": 1005.0,
+                        "std_power": 928.0,
+                        "avg_temperature": 853.0,
+                        "avg_temperature_lag1": 735.0,
+                        "avg_power_lag2": 694.0,
+                        "avg_voltage": 659.0
+                    },
+                    "best_params": {
+                        "n_estimators": 508,
+                        "max_depth": 9,
+                        "learning_rate": 0.08347568531770554,
+                        "num_leaves": 66,
+                        "min_data_in_leaf": 10,
+                        "feature_fraction": 0.6708079960015931,
+                        "min_gain_to_split": 0.7390853903925508
+                    }
+                }
+            ]
+        },
+        "24h": {
+            "current_version": "0.0.3",
+            "history": [
+                {
+                    "version": "0.0.3",
+                    "date": "2026-05-12",
+                    "metrics": {
+                        "mse": 206684835.94,
+                        "rmse": 14376.54,
+                        "mae": 6842.98,
+                        "r2": 0.75
+                    },
+                    "features": {
+                        "avg_temperature_rolling": 3244.0,
+                        "avg_voltage_rolling": 1053.0,
+                        "std_power": 800.0,
+                        "avg_power": 743.0,
+                        "energy_consumption_lag2": 729.0,
+                        "energy_consumption_lag1": 719.0,
+                        "avg_temperature": 646.0,
+                        "avg_power_rolling": 595.0,
+                        "avg_power_lag2": 589.0,
+                        "avg_voltage": 517.0
+                    },
+                    "best_params": {
+                        "n_estimators": 401,
+                        "max_depth": 9,
+                        "learning_rate": 0.18180353823535444,
+                        "num_leaves": 68,
+                        "min_data_in_leaf": 19,
+                        "feature_fraction": 0.566763126883108,
+                        "min_gain_to_split": 0.3473157658428802
+                    }
+                },
+                {
+                    "version": "0.0.2",
+                    "date": "2026-05-12",
+                    "metrics": {
+                        "mse": 207223692.98,
+                        "rmse": 14395.27,
+                        "mae": 6964.25,
+                        "r2": 0.75
+                    },
+                    "features": {
+                        "avg_temperature_rolling": 2307.0,
+                        "energy_consumption_lag2": 739.0,
+                        "avg_voltage_rolling": 687.0,
+                        "std_power": 640.0,
+                        "avg_power": 533.0,
+                        "avg_temperature": 517.0,
+                        "avg_power_lag2": 517.0,
+                        "energy_consumption_lag1": 506.0,
+                        "avg_power_rolling": 464.0,
+                        "avg_voltage": 433.0
+                    },
+                    "best_params": {
+                        "n_estimators": 998,
+                        "max_depth": 9,
+                        "learning_rate": 0.14254976565820798,
+                        "num_leaves": 126,
+                        "min_data_in_leaf": 20,
+                        "feature_fraction": 0.5030752251301609,
+                        "min_gain_to_split": 0.3209761548477236
+                    }
+                },
+                {
+                    "version": "0.0.1",
+                    "date": "2026-05-12",
+                    "metrics": {
+                        "mse": 208126116.84,
+                        "rmse": 14426.58,
+                        "mae": 7030.93,
+                        "r2": 0.75
+                    },
+                    "features": {
+                        "avg_temperature_rolling": 1255.0,
+                        "avg_voltage_rolling": 444.0,
+                        "energy_consumption_lag2": 376.0,
+                        "std_power": 334.0,
+                        "avg_temperature": 326.0,
+                        "avg_power": 305.0,
+                        "avg_power_lag2": 283.0,
+                        "energy_consumption_lag1": 274.0,
+                        "avg_power_rolling": 265.0,
+                        "avg_voltage": 197.0
+                    },
+                    "best_params": {
+                        "n_estimators": 363,
+                        "max_depth": 7,
+                        "learning_rate": 0.22196767026944272,
+                        "num_leaves": 118,
+                        "min_data_in_leaf": 19,
+                        "feature_fraction": 0.504133668760433,
+                        "min_gain_to_split": 0.34964968547889896
+                    }
+                }
+            ]
+        }
     }
-  }
 }

@@ -27,13 +27,6 @@ class PredictionBase(BaseModel):
         description="How wrong the model was"
     )
 
-    anomaly_score: float = Field(
-        default=...,
-        description="How confident the model is with the prediction (0 very confident, 1 complete anomaly)",
-        ge=0,
-        le=1
-    )
-
     is_anomaly: bool = Field(
         default=...,
         description="If it the prediction is anomaly, by a Threshold",

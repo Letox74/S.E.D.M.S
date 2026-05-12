@@ -12,11 +12,15 @@ from typing import Any
 import numpy as np
 import streamlit as st
 
-from utils import check_for_password_verification, api_client
+from utils import check_for_password_verification, api_client, display_prediction_card, APIResponse
 from core.config import IGNORE_WARNINGS
+
+from streamlit_javascript import st_javascript
+import pytz
 
 if IGNORE_WARNINGS:
     import warnings
+
     warnings.filterwarnings("ignore")
 
 st.set_page_config(layout="wide")
@@ -65,7 +69,7 @@ def get_model_loaded_and_version() -> tuple[bool, dict[Any]]:
 
 
 @st.cache_data(ttl=TTL_CACHE_TIME)
-def get_last_prediction() -> Any:
+def get_last_prediction() -> APIResponse:
     return api_client.request("GET", "/ml/predictions/latest")
 
 
@@ -74,6 +78,10 @@ st.header("Dashboard")
 st.divider()
 
 check_for_password_verification(main_page=True)
+
+# get the users timezone
+tz_res = st_javascript("Intl.DateTimeFormat().resolvedOptions().timeZone")  # get the users browser timezone
+user_tz = pytz.timezone(tz_res) if tz_res else pytz.utc
 
 # fetching data
 with st.status("Fetching data...", expanded=True) as status:
@@ -184,25 +192,30 @@ st.write(f"**Models: {"loaded" if loaded else "not loaded"}**")
 st.space("xsmall")
 
 if not metadata["15min"]["history"]:
-    st.info("No model metadata yet")
+    st.warning("No model metadata yet")
 
 else:
-    for model_name, data in metadata.items():
-        st.write(f"**Model: {model_name}**")
-        st.write(f"Current version: {data["current_version"]}")
+    cols = st.columns(4)
 
-        with st.expander("Metadata"):
-            st.write(f"- training date: {data["history"][0]["date"]}")
+    model_names = ["15min", "1h", "6h", "24h"]
+    for i, m_name in enumerate(model_names):
+        with cols[i]:
+            with st.container(border=True):
+                m_data = metadata.get(m_name, {})
+                current_ver = m_data.get("current_version", "N/A")
+                st.markdown(f"**Model: {m_name}**")
+                st.code(f"Version: {current_ver if current_ver else "N/A"}")  # could be an empty string
 
-            for dict_key, value in data["history"][0].items():
-                if isinstance(value, dict):
-                    st.write(f"- {dict_key}:")
+                # Nur die aktuellsten Metriken zeigen
+                if m_data.get("history"):
+                    metrics = m_data["history"][0].get("metrics", {})
+                    for metric_name, value in metrics.items():
+                        if metric_name in ("mae", "r2"):
+                            st.metric(label=metric_name.upper(), value=f"{value}")
+                else:
+                    st.caption("No metrics available")
 
-                    for key, val in value.items():
-                        st.write(f"\t- {key}: {val}")
-
-        st.space("xsmall")
-
+st.space("xsmall")
 ml_container = st.container()
 
 # footer (needs to be here, else it would not be shown if st.stop() is used)
@@ -213,34 +226,19 @@ st.caption("S.E.D.M.S - Open Source IoT Management System | [GitHub](https://git
 st.space("xsmall")
 if not last_prediction.is_success:
     with ml_container:
-        st.info("No Prediction found")
+        st.warning("No Prediction found")
         st.stop()
 
-last_prediction["timestamp"] = datetime.fromisoformat(last_prediction["timestamp"]).replace(tzinfo=timezone.utc)
+last_prediction.data["timestamp"] = datetime.fromisoformat(last_prediction.data["timestamp"]).replace(tzinfo=timezone.utc)
 
 # check if the prediction is already expired
-if (last_prediction["timestamp"] + timedelta(minutes=last_prediction["prediction_horizon_minutes"])
+if (last_prediction.data["timestamp"] + timedelta(minutes=last_prediction.data["prediction_horizon_minutes"])
         < datetime.now(timezone.utc)):
     with ml_container:
-        st.write("Last Prediction already expired")
+        st.warning("Last Prediction already expired")
         st.stop()
 
-# prepare the time values
-start_dt = last_prediction["timestamp"].strftime("%H:%M:%S")
-end_dt = (start_dt + timedelta(minutes=last_prediction["prediction_horizon_minutes"])).strftime("%H:%M:%S")
-prediction_value = last_prediction["predicted_load"]
 
 with ml_container:
-    ml_col1, ml_col2, ml_col3 = st.columns(3)
-
-    with ml_col1:
-        st.metric("Start time", start_dt, border=True, help="The time the when the prediction was made")
-
-    with ml_col2:
-        st.metric("End time", end_dt, border=True, help="The time by which it was predicted")
-
-    with ml_col3:
-        st.metric("Period", f"{last_prediction["prediction_horizon_minutes"]} Min.", border=True,
-                  help="The prediction period")
-
-    st.metric("Predicted value", f"{last_prediction["predicted_load"]} Wh", border=True)
+    st.divider()
+    display_prediction_card(last_prediction.data, user_tz)

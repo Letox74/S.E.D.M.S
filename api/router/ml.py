@@ -16,6 +16,7 @@ from api.dependencies import (
 )
 from core.config import PREDICTION_HORIZONS
 from database.connection import DatabaseManager
+from database.ml.status_manager import set_retraining_status
 from internal.schemas.prediction_models import PredictionRead
 from internal.service import ml_service
 from .utils import to_csv
@@ -62,6 +63,8 @@ async def retrain_models(
         db: DatabaseManager = Depends(get_db_session)
 ) -> dict[str, str | bool]:
     await validate_enough_analytics(db)
+
+    set_retraining_status(True)
     bg_task.add_task(ml_service.retrain_models, optimize, db)
 
     return {"info": "retraining started", "optimize": optimize}

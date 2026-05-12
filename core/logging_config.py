@@ -56,3 +56,6 @@ def setup_logging():
     # Analytics Logger
     analytics_logger = logging.getLogger("Analytics")
     setup_single_logger(analytics_logger, LOG_DIR / "analytics.log")
+
+    ml_logger = logging.getLogger("ML")
+    setup_single_logger(ml_logger, LOG_DIR / "ml.log")

@@ -10,22 +10,31 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OrdinalEncoder
 
-from core.config import PREDICTION_HORIZONS
+from core.config import PREDICTION_HORIZONS, IGNORE_WARNINGS
 from database.connection import DatabaseManager
+from database.ml.status_manager import set_retraining_status
 from .evaluator import evaluate_model
 from .handler import save_model, save_model_metadata
 from .optimizer import optimize_regression_model
 from .processor import create_data
 
-app_logger = logging.getLogger("App")
+if IGNORE_WARNINGS:
+    import warnings
+
+    warnings.filterwarnings("ignore")
+
+ml_logger = logging.getLogger("ML")
 
 
 async def train_models(optimize: bool, analytics_count: int, db: DatabaseManager) -> None:
-    await asyncio.gather(
-        train_regression(optimize, analytics_count, db),
-        train_isolation_forest(analytics_count, db)
-    )
+    try:
+        await asyncio.gather(
+            train_regression(optimize, analytics_count, db),
+            train_isolation_forest(analytics_count, db)
+        )
 
+    finally:
+        set_retraining_status(False)
 
 
 def _get_regression_parameters(analytics_count: int) -> dict[str, float | int | list[str]]:
@@ -39,7 +48,7 @@ def _get_regression_parameters(analytics_count: int) -> dict[str, float | int | 
         "min_gain_to_split": 0.5 if analytics_count < 10_000 else 0.6,
         "verbosity": -1,
         "cat_features": ["type"],
-        "n_jobs": -1,
+        "n_jobs": 4,
         "random_state": 42
     }
 
@@ -62,7 +71,7 @@ async def _train_regression_model(X, y, name, optimize: bool, analytics_count: i
     if not optimize:
         lgbm_model = lgbm.LGBMRegressor(**_get_regression_parameters(analytics_count))
         lgbm_model.fit(X_train, y_train, eval_set=[(X_val, y_val)],
-                            callbacks=[lgbm.callback.early_stopping(25, verbose=False)])
+                            callbacks=[lgbm.callback.early_stopping(25, verbose=False), lgbm.log_evaluation(period=0)])
 
         preds = lgbm_model.predict(X_test)
 
@@ -79,13 +88,25 @@ async def train_regression(optimize: bool, analytics_count: int, db: DatabaseMan
     id = str(uuid4())
     start_time = time.perf_counter()
 
-    app_logger.info(f"ID: {id}\t Model training started (Optimize: {optimize})")
+    ml_logger.info(f"ID: {id}\t Model training started (Optimize: {optimize})")
 
     model_data = await asyncio.gather(*[create_data(None, None, minutes, db) for minutes in PREDICTION_HORIZONS])
-    await asyncio.gather(*[_train_regression_model(data[i][0], data[i][1], name, optimize, analytics_count)
-                                    for name, i, data in zip(["15min", "1h", "6h", "24h"], enumerate(model_data))])
+    tasks = [
+        _train_regression_model(model_data[i][0], model_data[i][1], name, optimize, analytics_count)
+        for i, name in enumerate(["15min", "1h", "6h", "24h"])
+    ]
+    await asyncio.gather(*tasks)
 
-    app_logger.info(f"ID: {id}\t Model training ended, took {((time.perf_counter() - start_time) / 60):.2f} minutes")
+    end_time = time.perf_counter()
+    if (end_time - start_time) / 60 > 1:
+        value = (end_time - start_time) / 60
+        metric = "minutes"
+
+    else:
+        value = end_time - start_time
+        metric = "seconds"
+
+    ml_logger.info(f"ID: {id}\t Model training ended, took {value:.2f} {metric}")
 
 
 def _get_iso_forest_parameters(analytics_count: int) -> dict[str, float | str | int]:
@@ -101,13 +122,13 @@ def _get_iso_forest_parameters(analytics_count: int) -> dict[str, float | str | 
 
 
 async def train_isolation_forest(analytics_count: int, db: DatabaseManager) -> None:
-    training_data = await create_data(db, 15)
+    training_data = await create_data(None, None, 15, db)
     training_data = training_data[0]
 
     # define the column transformer for the status column
     preprocessor = ColumnTransformer(
         transformers=[
-            ("cat", OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1), ["status"])
+            ("cat", OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1), ["type"])
         ],
         remainder="passthrough"
     )

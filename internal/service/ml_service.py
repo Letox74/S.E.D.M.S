@@ -1,4 +1,6 @@
 import json
+import logging
+from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta, date
 from pathlib import Path
 from typing import Never, Optional
@@ -23,6 +25,8 @@ from .utils import (
     db_count
 )
 
+ml_logger = logging.getLogger("ML")
+
 MODELS_DIR = Path(__file__).parent.parent.resolve() / "ml" / "models"
 
 LGBM_PATH_15min = MODELS_DIR / "lgbm_model_15min.pkl"
@@ -35,28 +39,44 @@ ISO_FOREST_PATH = MODELS_DIR / "iso_forest.pkl"
 METADATA_PATH = MODELS_DIR / "metadata.json"
 
 
+@dataclass
+class LGBMPredictionModel:
+    model: lgbm.LGBMRegressor
+    horizon_minutes: int
+    name: str
+
+
+@dataclass
+class PredicionModels:
+    lgbm_models: list[LGBMPredictionModel]
+    iso_forest: Pipeline
+
+
 def _get_prediction_models(
         horizon_minutes: int
-) -> (tuple[tuple[lgbm.LGBMRegressor, int, str], tuple[lgbm.LGBMRegressor, int, str], Pipeline] |
-      tuple[tuple[lgbm.LGBMRegressor, int, str], Pipeline] |
-      None):
+) -> PredicionModels:
     # get the models that fit the prediction horizon
-    first_model = [(model, name) for model, name in
-                   zip(PREDICTION_HORIZONS, ["15min", "1h", "6h", "24h"]) if model <= horizon_minutes][0]
-    second_model = [(model, name) for model, name in
-                    zip(PREDICTION_HORIZONS, ["15min", "1h", "6h", "24h"]) if model >= horizon_minutes][0]
+    horizon_mapping = dict(zip(PREDICTION_HORIZONS, ["15min", "1h", "6h", "24h"]))
+    lower_horizons = [horizon for horizon in horizon_mapping if horizon <= horizon_minutes]
+    upper_horizons = [horizon for horizon in horizon_mapping if horizon >= horizon_minutes]
 
-    if first_model[0] == second_model[0]:
-        lgbm1, iso_forest = load_active_models(first_model[1])
-        return (lgbm1, first_model[0], first_model[1]), iso_forest
+    # get the best model
+    lower_model = lower_horizons[-1]
+    higher_model = upper_horizons[0]
 
-    models = load_active_models(first_model[1]), load_active_models(second_model[1])
-    if models[0] is None:
-        return None
+    needed_horizons = sorted(list({lower_model, higher_model}))  # set to prevent the same model
 
-    lgbm1, _ = models[0]
-    lgbm2, iso_forest = models[1]
-    return (lgbm1, first_model[0], first_model[1]), (lgbm2, second_model[0], second_model[1]), iso_forest
+    loaded_models = []
+    final_iso_forest = None
+
+    for model in needed_horizons:
+        name = horizon_mapping[model]
+        lgbm_model, iso_forest = load_active_models(name)
+
+        loaded_models.append(LGBMPredictionModel(lgbm_model, model, name))
+        final_iso_forest = iso_forest
+
+    return PredicionModels(lgbm_models=loaded_models, iso_forest=final_iso_forest)
 
 
 async def _update_prediction_errors(db: DatabaseManager) -> None:
@@ -83,7 +103,10 @@ async def _update_prediction_errors(db: DatabaseManager) -> None:
         FROM CalculatedPredictions AS T03
         WHERE predictions.id = T03.id;
     """
-    await db.execute_transaction(sql)
+    updated_rows = await db.execute_transaction(sql)
+
+    if updated_rows >= 1:
+        ml_logger.info(f"Updated {updated_rows} rows")
 
 
 def _calculate_the_prediction(
@@ -94,8 +117,8 @@ def _calculate_the_prediction(
         horizon_minutes: int,
         data: pd.DataFrame
 ) -> float:
-    prediction1 = lgbm1.predict(data)
-    prediction2 = lgbm2.predict(data)
+    prediction1 = lgbm1.predict(data)[0]
+    prediction2 = lgbm2.predict(data)[0]
 
     # calculate distances
     dist_a = abs(horizon_minutes - lgbm1_horizon)
@@ -105,13 +128,13 @@ def _calculate_the_prediction(
     return (prediction1 * (dist_b / total_dist)) + (prediction2 * (dist_a / total_dist))
 
 
-def _calculate_confidence(iso_forest: Pipeline, data: pd.DataFrame) -> tuple[float, bool, float]:
-    score = iso_forest.decision_function(data)
-    anomaly = iso_forest.predict(data)
+def _calculate_confidence(iso_forest: Pipeline, data: pd.DataFrame) -> tuple[bool, float]:
+    score = iso_forest.decision_function(data)[0]
+    anomaly = iso_forest.predict(data)[0]
 
     k = 5
     x0 = -0.15
-    return score, True if anomaly == 1 else False, 1 / (1 + np.exp(-k * (score - x0)))  # sigmoid function
+    return True if anomaly == 1 else False, (1 / (1 + np.exp(-k * (score - x0)))) * 100  # sigmoid function
 
 
 def _get_model_version(name: str) -> str:
@@ -132,23 +155,27 @@ async def get_prediction(
     prediction_data = data[0].iloc[-1:]
 
     models = _get_prediction_models(horizon_minutes)
-    score, anomaly, confidence = _calculate_confidence(models[-1], prediction_data)
-    if len(models) == 2:
-        prediction = models[0][0].predict(prediction_data)
-        version = _get_model_version(models[0][2])
+    anomaly, confidence = _calculate_confidence(models.iso_forest, prediction_data)
+    if len(models.lgbm_models) == 2:
+        prediction = models.lgbm_models[0].model.predict(prediction_data)[0]
+        version = _get_model_version(models.lgbm_models[0].name)
 
     else:
         prediction = _calculate_the_prediction(
-            models[0][0], models[0][1], models[1][0], models[1][1], horizon_minutes, prediction_data
+            models.lgbm_models[0].model,
+            models.lgbm_models[0].horizon_minutes,
+            models.lgbm_models[1].model,
+            models.lgbm_models[1].horizon_minutes,
+            horizon_minutes,
+            prediction_data
         )
-        version1 = _get_model_version(models[0][2])
-        version2 = _get_model_version(models[1][2])
+        version1 = _get_model_version(models.lgbm_models[0].name)
+        version2 = _get_model_version(models.lgbm_models[1].name)
         version = f"{version1} & {version2}"
 
     pred_create = PredictionCreate(
         device_id=device_id,
         predicted_load=prediction,
-        anomaly_score=score,
         is_anomaly=anomaly,
         confidence=confidence,
         prediction_horizon_minutes=horizon_minutes,
@@ -187,7 +214,7 @@ async def get_model_metadata(
             "history": [
                 history for history in model_info["history"]
                 if (not version or history["version"] == version)
-                and (not after or datetime.strptime(history["date"], "%Y-%m-%d").date() > after)
+                   and (not after or datetime.strptime(history["date"], "%Y-%m-%d").date() > after)
             ]
         }
         for name, model_info in data.items()

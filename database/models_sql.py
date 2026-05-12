@@ -90,7 +90,6 @@ CREATE_PREDICTIONS_SQL = """
             predicted_load REAL NOT NULL,
             actual_load REAL,
             prediction_error REAL,
-            anomaly_score REAL NOT NULL,
             is_anomaly BOOLEAN NOT NULL,
             confidence REAL NOT NULL,
             prediction_horizon_minutes INTEGER NOT NULL,

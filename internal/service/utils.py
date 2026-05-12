@@ -17,6 +17,7 @@ from ..schemas.telemetry_models import TelemetryRead, TelemetryCreate
 app_logger = logging.getLogger("App")
 telemetry_logger = logging.getLogger("Telemetry")
 analytics_logger = logging.getLogger("Analytics")
+ml_logger = logging.getLogger("ML")
 
 # method for device, telemetry and analytics
 def _handle_new_row_result(table_name: str, row: Row) -> DeviceRead | TelemetryRead | AnalyticsRead:
@@ -34,7 +35,7 @@ def _handle_new_row_result(table_name: str, row: Row) -> DeviceRead | TelemetryR
             lambda: AnalyticsRead(**dict(row))
         ),
         "predictions": (
-            lambda: app_logger.info("Saved new Prediction"),
+            lambda: ml_logger.info("Saved new Prediction"),
             lambda: PredictionRead(**dict(row))
         )
     }

@@ -22,12 +22,13 @@ def update_device(data: DeviceUpdate, device_id: str) -> None | str:
     result = api_client.request("PATCH", f"/devices/{device_id}", json={"data": data.model_dump()})
     return result.data["detail"] if not result.is_success else None
 
+
 def delete_device(device_id: str) -> None:
     api_client.request("DELETE", f"/devices/{device_id}")
 
 
 def register_new_device(data: DeviceCreate) -> None:
-   api_client.request("POST", "/devices/", json={"data": data.model_dump()})
+    api_client.request("POST", "/devices/", json={"data": data.model_dump()})
 
 
 # header and etc.
@@ -106,10 +107,12 @@ with tab_manage:
             with col_edit1:
                 new_name = st.text_input("Device Name", value=selected_device.get("name", ""), max_chars=20)
                 new_loc = st.text_input("Location", value=selected_device.get("location", ""), max_chars=30)
-                new_desc = st.text_area("Description", value=selected_device.get("description", ""), height=80, max_chars=200)
+                new_desc = st.text_area("Description", value=selected_device.get("description", ""), height=80,
+                                        max_chars=200)
 
             with col_edit2:
-                new_firmware = st.text_input("Firmware Version", value=selected_device.get("firmware_version", ""), max_chars=32)
+                new_firmware = st.text_input("Firmware Version", value=selected_device.get("firmware_version", ""),
+                                             max_chars=32)
                 new_status = st.selectbox(
                     "Status",
                     DeviceStatus.values(),

@@ -33,8 +33,8 @@ async def evaluate_model(y_preds, y_true) -> dict[str, float]:
     )
 
     return {
-        "mse": results[0],
-        "rmse": results[1],
-        "mae": results[2],
-        "r2": results[3]
+        "mse": round(results[0], 2),
+        "rmse": round(results[1], 2),
+        "mae": round(results[2], 2),
+        "r2": round(results[3], 2)
     }
