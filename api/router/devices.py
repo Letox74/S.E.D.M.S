@@ -125,7 +125,7 @@ async def get_device_stats(
     status_code=status.HTTP_200_OK
 )
 async def get_device_types() -> list[str]:
-    return await DeviceTypes.values()
+    return DeviceTypes.values()
 
 
 @device_router.get(
@@ -135,7 +135,7 @@ async def get_device_types() -> list[str]:
     status_code=status.HTTP_200_OK
 )
 async def get_device_statuses() -> list[str]:
-    return await DeviceStatus.values()
+    return DeviceStatus.values()
 
 
 @device_router.get(
