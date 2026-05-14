@@ -1,52 +1,18 @@
-from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Any
 
-import httpx
 import pandas as pd
 import pytz
 import streamlit as st
-from starlette import status
 
-from core.config import BASE_URL, API_PORT, PREFIX, API_KEY, FRONTEND_PASSWORD
-
-URL = f"{BASE_URL}:{API_PORT}{PREFIX}"
-
-
-@dataclass(kw_only=True)
-class APIResponse:
-    status_code: int
-    data: Optional[dict | list] = None
-    error_detail: Optional[str] = None
-
-    @property
-    def is_success(self) -> bool:
-        return 200 <= self.status_code < 300
+from api.client.api_client import APIClient
+from api.client.provider import create_api_instance
+from core.config import FRONTEND_PASSWORD
 
 
-class APIClient:
-    def __init__(self, base_url: str, api_key: str) -> None:
-        self.base_url = base_url
-        self._headers = {"API-KEY": api_key}
-
-    def request(self, method: str, path: str, **kwargs) -> APIResponse:
-        with httpx.Client(base_url=self.base_url, headers=self._headers) as client:
-            try:
-                response = client.request(method, path, **kwargs)
-                return APIResponse(
-                    status_code=response.status_code,
-                    data=response.json() if response.status_code != status.HTTP_204_NO_CONTENT else None
-                )
-
-            except Exception as e:
-                return APIResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_detail=str(e))
-
-    # for the CSV Download
-    def get_stream(self, path: str, **kwargs) -> bytes:
-        return httpx.get(f"{self.base_url}{path}", headers=self._headers, **kwargs).content
-
-
-api_client = APIClient(URL, API_KEY)
+@st.cache_resource
+def get_api_client() -> APIClient:
+    return create_api_instance()
 
 
 def check_for_password_verification(main_page: bool = False) -> None:
@@ -106,7 +72,8 @@ def display_prediction_card(data: Any, users_tz) -> None:
     confidence = data["confidence"]
     avg_value = _get_historical_avg_for_timeslot(data["device_id"], data["prediction_horizon_minutes"])
 
-    dt_object = datetime.fromisoformat(data["timestamp"]) if not isinstance(data["timestamp"], datetime) else data["timestamp"]
+    dt_object = datetime.fromisoformat(data["timestamp"]) if not isinstance(data["timestamp"], datetime) else data[
+        "timestamp"]
 
     if dt_object.tzinfo is None:
         dt_object = pytz.utc.localize(dt_object)
@@ -131,7 +98,8 @@ def display_prediction_card(data: Any, users_tz) -> None:
         delta_color="inverse"
     )
     st.caption(f"Target: {horizon_value} {horizon_metric} was selected")
-    st.caption(f"Prediction started at {start_time.strftime("%Y-%m-%d %H:%M")} and forecasts till {end_time.strftime("%Y-%m-%d %H:%M")}")
+    st.caption(
+        f"Prediction started at {start_time.strftime("%Y-%m-%d %H:%M")} and forecasts till {end_time.strftime("%Y-%m-%d %H:%M")}")
 
     conf_color = "green" if confidence > 80 else "orange" if confidence > 50 else "red"
     st.markdown(f"**Confidence Score:** :{conf_color}[{confidence:.0f}%]")

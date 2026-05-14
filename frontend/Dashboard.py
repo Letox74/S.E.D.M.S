@@ -12,8 +12,9 @@ from typing import Any
 import numpy as np
 import streamlit as st
 
-from utils import check_for_password_verification, api_client, display_prediction_card, APIResponse
+from utils import check_for_password_verification, display_prediction_card, get_api_client
 from core.config import IGNORE_WARNINGS
+from api.client.api_client import APIResponse
 
 from streamlit_javascript import st_javascript
 import pytz
@@ -26,6 +27,9 @@ if IGNORE_WARNINGS:
 st.set_page_config(layout="wide")
 
 TTL_CACHE_TIME = 60 * 30  # 30 minutes
+
+# api client
+api_client = get_api_client()
 
 
 # helper functions for the api calls
@@ -229,7 +233,7 @@ if not last_prediction.is_success:
         st.warning("No Prediction found")
         st.stop()
 
-last_prediction.data["timestamp"] = datetime.fromisoformat(last_prediction.data["timestamp"]).replace(tzinfo=timezone.utc)
+last_prediction.data["timestamp"] = datetime.fromisoformat(last_prediction.data["timestamp"]).replace( tzinfo=timezone.utc)
 
 # check if the prediction is already expired
 if (last_prediction.data["timestamp"] + timedelta(minutes=last_prediction.data["prediction_horizon_minutes"])
@@ -237,7 +241,6 @@ if (last_prediction.data["timestamp"] + timedelta(minutes=last_prediction.data["
     with ml_container:
         st.warning("Last Prediction already expired")
         st.stop()
-
 
 with ml_container:
     st.divider()

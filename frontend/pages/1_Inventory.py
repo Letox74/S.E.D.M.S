@@ -4,13 +4,15 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
-from frontend.utils import check_for_password_verification, api_client
+from frontend.utils import check_for_password_verification, get_api_client
 from internal.schemas.device_models import DeviceTypes, DeviceStatus, DeviceUpdate, DeviceCreate
 
 st.set_page_config(layout="wide")
 
 TTL_CACHE_TIME = 60 * 30  # 30 minutes
 
+# api client
+api_client = get_api_client()
 
 # api call functions
 @st.cache_data(ttl=TTL_CACHE_TIME)
