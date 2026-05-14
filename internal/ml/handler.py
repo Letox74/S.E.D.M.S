@@ -104,7 +104,7 @@ def save_model_metadata(
     with open(METADATA_PATH, "w", encoding="utf-8") as metadata:
         json.dump(metadata_json, metadata, ensure_ascii=True, indent=4)
 
-    ml_logger.info(f"Model updated to version {new_version}, RMSE: {metrics["rmse"]}")
+    ml_logger.info(f"Model {model_name} updated to version {new_version}, RMSE: {metrics["rmse"]}")
 
 
 def _get_aggregations() -> dict[str, str]:
