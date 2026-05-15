@@ -76,3 +76,10 @@ dependencies = [
     "watchdog==6.0.0",
     "wrapt==2.1.2",
 ]
+
+[project.scripts]
+sedms = "sedms:main"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
