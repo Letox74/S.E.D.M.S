@@ -4,12 +4,13 @@ from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from core.config import DEFAULT_RATE_LIMIT  # can be set in .env (standard is 35/minute)
+from core.config import settings
 
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=[DEFAULT_RATE_LIMIT] # also for telemetry, because the Database will not start inserting data again until 15 minutes have passed
-)  # define limiter
+    default_limits=[settings.api.default_rate_limits] # also for telemetry, because the Database will not start inserting data again until 1 minute passed
+)  # default limit is 35 per minute, can be set in .env
+# define limiter
 
 
 # rewrite slowapis _rate_limit_exceeded_handler function to safen it

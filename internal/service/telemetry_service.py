@@ -4,7 +4,7 @@ import time
 from datetime import datetime, timezone, timedelta
 from typing import Never, Optional
 
-from core.config import TELEMETRY_LIMIT
+from core.config import settings
 from database.connection import DatabaseManager
 from internal.schemas.telemetry_models import TelemetryCreate, TelemetryRead
 from .analytics_service import insert_new_analytic
@@ -24,7 +24,7 @@ error_logger = logging.getLogger("Error")
 
 # logic for the API Endpoints
 async def _validate_cooldown(device_id: str, db: DatabaseManager) -> str | None:
-    COOLDOWN = timedelta(minutes=TELEMETRY_LIMIT)
+    COOLDOWN = timedelta(minutes=settings.api.telemetry_limit)
 
     latest_telemetry = await db_get_latest_telemetry(device_id, db)
     if not latest_telemetry:

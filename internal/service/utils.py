@@ -1,6 +1,3 @@
-"""
-utils because there the same endpoints on telemetry and analytics
-"""
 import logging
 from datetime import datetime
 from typing import Optional, Never

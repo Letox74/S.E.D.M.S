@@ -7,7 +7,7 @@ import streamlit as st
 
 from api.client.api_client import APIClient
 from api.client.provider import create_api_instance
-from core.config import FRONTEND_PASSWORD
+from core.config import settings
 
 
 @st.cache_resource
@@ -26,7 +26,7 @@ def check_for_password_verification(main_page: bool = False) -> None:
 
         if main_page:
             if password := place_holder.text_input("Enter the password", type="password", placeholder="password..."):
-                if password == FRONTEND_PASSWORD:
+                if password == settings.frontend.password:
                     st.session_state.authenticated = True
                     place_holder.empty()
                     st.rerun()

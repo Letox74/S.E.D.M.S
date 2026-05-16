@@ -1,56 +1,152 @@
+from __future__ import annotations
+
 import os
+import tomllib
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Never, Optional
+from typing import Never
 
 from dotenv import load_dotenv
 
 ENV_PATH = Path(__file__).parent.parent.resolve() / ".env"
+TOML_PATH = Path(__file__).parent.resolve() / "config.toml"
 
 load_dotenv(dotenv_path=ENV_PATH)
 
-# general
-VERSION: str = "0.1.0"
+with open(TOML_PATH, "rb") as toml:
+    toml_data = tomllib.load(toml)
 
-# path to the db
-DB_PATH: Path = Path(__file__).parent.parent.resolve() / "database" / "storage.db"
 
-# api stuff
-# api key
-API_KEY: str = os.getenv("API_KEY")
+@dataclass
+class APIURLs:
+    prefix: str
+    docs_endpoint: str
+    redoc_endpoint: str
+    openapi_endpoint: str
 
-# URLs
-BASE_URL: str = os.getenv("BASE_URL")
-API_PORT: int = int(os.getenv("API_PORT"))
-STREAMLIT_PORT: int = int(os.getenv("STREAMLIT_PORT"))
+    @classmethod
+    def from_toml(cls) -> APIURLs:
+        return cls(
+            toml_data["api"]["prefix"],
+            toml_data["api"]["prefix"] + toml_data["api"]["docs_endpoint"],
+            toml_data["api"]["prefix"] + toml_data["api"]["redoc_endpoint"],
+            toml_data["api"]["prefix"] + toml_data["api"]["openapi_endpoint"]
+        )
 
-PREFIX: str = "/sedms/api"
-DOCS_URL: Optional[str] = PREFIX + "/docs"
-REDOC_URL: Optional[str] = PREFIX + "/redoc"
-OPENAPI_URL: Optional[str] = PREFIX + "/openapi.json"
 
-# CORS
-USE_CORS: bool = False
-ALLOW_CREDENTIALS: bool = True
-ALLOWED_ORIGINS: list[str] | list[Never] = ["*"]
-ALLOWED_METHODS: list[str] | list[Never] = ["*"]
-ALLOWED_HEADERS: list[str] | list[Never] = ["*"]
+@dataclass
+class CorsConfig:
+    use_cors: bool
+    allow_credentials: bool
+    allowed_origins: list[str] | list[Never] = field(default_factory=list)
+    allowed_methods: list[str] | list[Never] = field(default_factory=list)
+    allowed_headers: list[str] | list[Never] = field(default_factory=list)
 
-# rate limits
-DEFAULT_RATE_LIMIT: str = os.getenv("DEFAULT_RATE_LIMIT")
-ACTIVATE_RATE_LIMITS: bool = True
+    @classmethod
+    def from_toml(cls) -> CorsConfig:
+        return cls(
+            toml_data["api"]["cors"]["use_cors"],
+            toml_data["api"]["cors"]["allow_credentials"],
+            toml_data["api"]["cors"]["allowed_origins"],
+            toml_data["api"]["cors"]["allowed_methods"],
+            toml_data["api"]["cors"]["allowed_headers"]
+        )
 
-# Telemetry
-TELEMETRY_LIMIT: int = 1 # in minutes
 
-# ml stuff (soon, just examples)
-RETRAIN_SCHEDULER: Optional[str] = None
+@dataclass
+class APIConfig:
+    key: str
+    port: int
 
-# four models in total
-PREDICTION_HORIZONS: list[int] = [15, 60, 360, 1440] # in minutes
-# can be refactored later, that the user decides the three models
+    urls: APIURLs
+    cors: CorsConfig
 
-# other stuff
-IGNORE_WARNINGS: bool = True
+    activate_rate_limits: bool
+    default_rate_limits: str
 
-# frontend
-FRONTEND_PASSWORD: str = os.getenv("FRONTEND_PASSWORD")
+    telemetry_limit: int
+
+    @classmethod
+    def from_toml(cls) -> APIConfig:
+        return cls(
+            os.getenv("API_KEY"),
+            int(os.getenv("API_PORT")),
+            APIURLs.from_toml(),
+            CorsConfig.from_toml(),
+            toml_data["api"]["rate_limiting"]["activate_rate_limits"],
+            os.getenv("DEFAULT_RATE_LIMIT"),
+            toml_data["api"]["telemetry"]["telemetry_limit"]
+        )
+
+
+@dataclass
+class MLConfig:
+    prediction_horizons: list[int]
+
+    @classmethod
+    def from_toml(cls) -> MLConfig:
+        return cls(
+            toml_data["ml"]["prediction_horizons"]
+        )
+
+
+@dataclass
+class DBConfig:
+    path: Path
+
+    @classmethod
+    def from_toml(cls) -> DBConfig:
+        return cls(
+            Path(__file__).parent.parent.resolve() / "database" / "storage.db"
+        )
+
+
+@dataclass
+class FrontendConfig:
+    password: str
+    port: int
+
+    @classmethod
+    def from_toml(cls) -> FrontendConfig:
+        return cls(
+            os.getenv("FRONTEND_PASSWORD"),
+            int(os.getenv("STREAMLIT_PORT"))
+        )
+
+
+@dataclass
+class OtherConfig:
+    ignore_warnings: bool
+
+    @classmethod
+    def from_toml(cls) -> OtherConfig:
+        return cls(
+            toml_data["other"]["ignore_warnings"]
+        )
+
+
+@dataclass
+class Config:
+    api: APIConfig
+    ml: MLConfig
+    db: DBConfig
+    frontend: FrontendConfig
+    other: OtherConfig
+
+    version: str
+    base_url: str
+
+    @classmethod
+    def from_toml(cls) -> Config:
+        return cls(
+            APIConfig.from_toml(),
+            MLConfig.from_toml(),
+            DBConfig.from_toml(),
+            FrontendConfig.from_toml(),
+            OtherConfig.from_toml(),
+            "0.1.0",
+            os.getenv("BASE_URL")
+        )
+
+
+settings = Config.from_toml()

@@ -4,9 +4,9 @@ from typing import Optional
 import httpx
 from starlette import status
 
-from core.config import BASE_URL, API_PORT, PREFIX, API_KEY
+from core.config import settings
 
-URL = f"{BASE_URL}:{API_PORT}{PREFIX}"
+API_URL = f"{settings.base_url}:{settings.api.port}{settings.api.urls.prefix}"
 
 
 @dataclass(kw_only=True)
@@ -22,7 +22,7 @@ class APIResponse:
 
 class APIClient:
     def __init__(self) -> None:
-        self.base_url = URL
+        self.base_url = API_URL
         self._headers = {"API-KEY": API_KEY}
 
     def sync_request(self, method: str, path: str, **kwargs) -> APIResponse:

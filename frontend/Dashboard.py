@@ -13,13 +13,13 @@ import numpy as np
 import streamlit as st
 
 from utils import check_for_password_verification, display_prediction_card, api_client
-from core.config import IGNORE_WARNINGS
+from core.config import settings
 from api.client.api_client import APIResponse
 
 from streamlit_javascript import st_javascript
 import pytz
 
-if IGNORE_WARNINGS:
+if settings.other.ignore_warnings:
     import warnings
 
     warnings.filterwarnings("ignore")

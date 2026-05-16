@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from database.connection import DatabaseManager
-from .config import DB_PATH
+from .config import settings
 
 app_logger = logging.getLogger("App")
 error_logger = logging.getLogger("Error")
@@ -12,7 +12,7 @@ error_logger = logging.getLogger("Error")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    db_manager = DatabaseManager(DB_PATH)
+    db_manager = DatabaseManager(settings.db.path)
     await db_manager.connect()
     await db_manager.initialize_schema()
 

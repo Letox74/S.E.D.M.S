@@ -14,7 +14,7 @@ from api.dependencies import (
     validate_device_has_predictions,
     validate_enough_analytics
 )
-from core.config import PREDICTION_HORIZONS
+from core.config import settings
 from database.connection import DatabaseManager
 from database.ml.status_manager import set_retraining_status
 from internal.schemas.prediction_models import PredictionRead
@@ -35,7 +35,7 @@ ml_router = APIRouter(
 )
 async def get_prediction(
         device_id: Optional[UUID] = Query(default=None, description="Optional Device ID"),
-        horizon_minutes: int = Query(default=..., description="The prediction horizon in minutes", ge=0, le=PREDICTION_HORIZONS[-1]),
+        horizon_minutes: int = Query(default=..., description="The prediction horizon in minutes", ge=0, le=settings.ml.prediction_horizons[-1]),
         db: DatabaseManager = Depends(get_db_session)
 ) -> PredictionRead:
     if not await ml_service.check_if_models_are_loaded():

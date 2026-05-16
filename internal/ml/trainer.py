@@ -10,7 +10,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OrdinalEncoder
 
-from core.config import PREDICTION_HORIZONS, IGNORE_WARNINGS
+from core.config import settings
 from database.connection import DatabaseManager
 from database.ml.status_manager import set_retraining_status
 from .evaluator import evaluate_model
@@ -18,7 +18,7 @@ from .handler import save_model, save_model_metadata
 from .optimizer import optimize_regression_model
 from .processor import create_data
 
-if IGNORE_WARNINGS:
+if settings.other.ignore_warnings:
     import warnings
 
     warnings.filterwarnings("ignore")
@@ -90,7 +90,7 @@ async def train_regression(optimize: bool, analytics_count: int, db: DatabaseMan
 
     ml_logger.info(f"ID: {id}\t Model training started (Optimize: {optimize})")
 
-    model_data = await asyncio.gather(*[create_data(None, None, minutes, db) for minutes in PREDICTION_HORIZONS])
+    model_data = await asyncio.gather(*[create_data(None, None, minutes, db) for minutes in settings.ml.prediction_horizons])
     tasks = [
         _train_regression_model(model_data[i][0], model_data[i][1], name, optimize, analytics_count)
         for i, name in enumerate(["15min", "1h", "6h", "24h"])

@@ -1,0 +1,25 @@
+[api]
+prefix = "/sedms/api"
+docs_enpoint = "/docs"
+redoc_endpoint = "/redoc"
+openapi_endpoint = "/openapi.json"
+
+[api.cors]
+use_cors = false
+allow_credentials = true
+allowed_origins = ["*"]
+allowed_methods = ["*"]
+allowed_headers = ["*"]
+
+[api.rate_limiting]
+activate_rate_limits = true
+
+[api.telemetry]
+telemetry_limit = 1 # in minutes
+
+[ml]
+prediction_horizons = [15, 60, 360, 1440] # in minutes
+
+[other]
+ignore_warnings = true
+

@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from core.config import PREDICTION_HORIZONS
+from core.config import settings
 from database.connection import DatabaseManager
 from internal.ml.handler import load_active_models
 from internal.ml.processor import create_data
@@ -56,7 +56,7 @@ def _get_prediction_models(
         horizon_minutes: int
 ) -> PredicionModels:
     # get the models that fit the prediction horizon
-    horizon_mapping = dict(zip(PREDICTION_HORIZONS, ["15min", "1h", "6h", "24h"]))
+    horizon_mapping = dict(zip(settings.ml.prediction_horizons, ["15min", "1h", "6h", "24h"]))
     lower_horizons = [horizon for horizon in horizon_mapping if horizon <= horizon_minutes]
     upper_horizons = [horizon for horizon in horizon_mapping if horizon >= horizon_minutes]
 
