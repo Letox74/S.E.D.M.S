@@ -1,2 +1,4 @@
-def setup_run_cli(subparsers) -> None:
+import argparse
+
+def setup_run_cli(subparsers: argparse._SubParsersAction) -> None:
     pass

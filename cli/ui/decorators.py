@@ -3,7 +3,8 @@ import inspect
 import traceback
 from typing import Any, Callable, Coroutine
 
-import rich
+from rich.console import Console
+from rich.status import Status
 
 from cli.utils import api_client
 
@@ -37,7 +38,7 @@ def is_api_online(func: Callable) -> Any:
 
 
 def _handle_exception(e: Exception, show_error: bool, show_full_error: bool) -> None:
-    console = rich.Console()
+    console = Console()
     if show_error:
         msg = str(e) if show_full_error else "".join(traceback.format_exception_only(type(e), e)).strip()
         console.print(f"[bold red]Error:[/bold red]\n{msg}")
@@ -71,13 +72,11 @@ def handle_error(show_full_error: bool = True, show_error: bool = True) -> Calla
 
 def spinner(message: str) -> Callable | Coroutine:
     def decorator(func: Callable) -> Callable | Coroutine:
-        console = rich.Console()
-
         if inspect.iscoroutinefunction(func):
             @handle_error(show_full_error=False)
             @functools.wraps(func)
             async def wrapper(*args, **kwargs) -> Any:
-                with console.status(f"[bold blue]{message}[/bold blue]", spinner="dots"):
+                with Status(f"[bold cyan]{message}[/bold cyan]", spinner="dots"):
                     return await func(*args, **kwargs)
 
 
@@ -85,7 +84,7 @@ def spinner(message: str) -> Callable | Coroutine:
             @handle_error(show_full_error=False)
             @functools.wraps(func)
             def wrapper(*args, **kwargs) -> Any:
-                with console.status(f"[bold blue]{message}[/bold blue]", spinner="dots"):
+                with Status(f"[bold cyan]{message}[/bold cyan]", spinner="dots"):
                     return func(*args, **kwargs)
 
 
