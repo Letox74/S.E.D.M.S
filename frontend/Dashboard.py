@@ -51,13 +51,13 @@ def get_avg_efficiency_score_today() -> float:
 
 @st.cache_data(ttl=TTL_CACHE_TIME)
 def get_battery_alerts() -> list[Any]:
-    after = datetime.now(timezone.utc) - timedelta(minutes=120)
+    after = datetime.now(timezone.utc) - timedelta(minutes=15)
     return api_client.sync_request("GET", "/telemetry/alerts/battery", params={"after": after}).data
 
 
 @st.cache_data(ttl=TTL_CACHE_TIME)
 def get_temperature_alerts() -> list[Any]:
-    after = datetime.now(timezone.utc) - timedelta(minutes=120)
+    after = datetime.now(timezone.utc) - timedelta(minutes=15)
     return api_client.sync_request("GET", "/telemetry/alerts/temperature", params={"after": after}).data
 
 
