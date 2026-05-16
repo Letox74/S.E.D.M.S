@@ -14,6 +14,8 @@ from core.config import FRONTEND_PASSWORD
 def get_api_client() -> APIClient:
     return create_api_instance()
 
+api_client = get_api_client()
+
 
 def check_for_password_verification(main_page: bool = False) -> None:
     if "authenticated" not in st.session_state:
@@ -52,8 +54,8 @@ def _get_historical_avg_for_timeslot(device_id: Optional[str], horizon_minutes: 
     end_time = (now + timedelta(minutes=horizon_minutes)).time()
     seven_days_ago = now - timedelta(days=7)
 
-    response = api_client.request("GET", "/analytics/history",
-                                  params={"device_id": device_id, "start_datetime": seven_days_ago})
+    response = api_client.sync_request("GET", "/analytics/history",
+                                       params={"device_id": device_id, "start_datetime": seven_days_ago})
 
     if not response.is_success or not response.data:
         return 0.0

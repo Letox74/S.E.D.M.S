@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -26,6 +26,7 @@ from core.logging_config import setup_logging
 
 if IGNORE_WARNINGS:
     import warnings
+
     warnings.filterwarnings("ignore")
 
 setup_logging()
@@ -66,3 +67,14 @@ app.include_router(device_router, prefix=PREFIX)
 app.include_router(telemetry_router, prefix=PREFIX)
 app.include_router(analytics_router, prefix=PREFIX)
 app.include_router(ml_router, prefix=PREFIX)
+
+
+# endpoint to check if the api is online
+@app.get(
+    path=f"{PREFIX}/online",
+    description="Endpoint to check if the API is online",
+    status_code=status.HTTP_200_OK,
+    include_in_schema=False
+)
+async def get_online_status() -> dict[str, str]:
+    return {"status": "online"}

@@ -5,24 +5,22 @@ import streamlit as st
 from streamlit_javascript import st_javascript
 
 from database.ml.status_manager import get_current_status
-from frontend.utils import check_for_password_verification, get_api_client, display_prediction_card
+from frontend.utils import check_for_password_verification, api_client, display_prediction_card
 
 st.set_page_config(layout="wide")
 
 TTL_CACHE_TIME = 60 * 30  # 30 minutes
 
-# api client
-api_client = get_api_client()
 
 # api call functions
 @st.cache_data(ttl=TTL_CACHE_TIME)
 def fetch_device_fleet() -> Any:
-    return api_client.request("GET", "/devices/").data
+    return api_client.sync_request("GET", "/devices/").data
 
 
 @st.cache_data(ttl=TTL_CACHE_TIME)
 def fetch_ml_metadata() -> Any:
-    return api_client.request("GET", "/ml/metadata", params={"version": "latest"}).data
+    return api_client.sync_request("GET", "/ml/metadata", params={"version": "latest"}).data
 
 
 # title
@@ -107,7 +105,7 @@ def retraining_section() -> None:
 
         else:
             if st.button("Start Retraining", type="primary", use_container_width=True):
-                response = api_client.request("POST", "/ml/retrain", params={"optimize": optimize})
+                response = api_client.sync_request("POST", "/ml/retrain", params={"optimize": optimize})
 
                 if response.is_success:
                     st.toast("Retraining started")
@@ -148,7 +146,7 @@ with st.container(border=True):
     if predict:
         with st.spinner("Calculating..."):
             params = {k: v for k, v in zip(["horizon_minutes", "device_id"], [horizon, dev_options[selected_dev]]) if v}
-            result = api_client.request("GET", "/ml/predict", params=params)
+            result = api_client.sync_request("GET", "/ml/predict", params=params)
 
             if result.is_success:
                 display_prediction_card(result.data, user_tz)

@@ -12,7 +12,7 @@ from typing import Any
 import numpy as np
 import streamlit as st
 
-from utils import check_for_password_verification, display_prediction_card, get_api_client
+from utils import check_for_password_verification, display_prediction_card, api_client
 from core.config import IGNORE_WARNINGS
 from api.client.api_client import APIResponse
 
@@ -28,53 +28,50 @@ st.set_page_config(layout="wide")
 
 TTL_CACHE_TIME = 60 * 30  # 30 minutes
 
-# api client
-api_client = get_api_client()
-
 
 # helper functions for the api calls
 @st.cache_data(ttl=TTL_CACHE_TIME)
 def get_active_device_count() -> int:
-    return len(api_client.request("GET", "/devices/active").data)
+    return len(api_client.sync_request("GET", "/devices/active").data)
 
 
 @st.cache_data(ttl=TTL_CACHE_TIME)
 def get_total_kwh_today() -> float:
     today = datetime.combine(date.today(), time.min, tzinfo=timezone.utc)
-    data = api_client.request("GET", "/analytics/history", params={"start_datetime": today}).data
-    return round(sum([analytic["energy_consumption"] for analytic in data]) / 1_000, 2) if data else 0.00
+    data = api_client.sync_request("GET", "/telemetry/history", params={"start_datetime": today}).data
+    return round(sum([telemetry["voltage"] * telemetry["current"] for telemetry in data]) / 1_000, 2) if data else 0.00
 
 
 @st.cache_data(ttl=TTL_CACHE_TIME)
 def get_avg_efficiency_score_today() -> float:
     today = datetime.combine(date.today(), time.min, tzinfo=timezone.utc)
-    data = api_client.request("GET", "/analytics/history", params={"start_datetime": today}).data
+    data = api_client.sync_request("GET", "/analytics/history", params={"start_datetime": today}).data
     return round(np.mean([analytic["efficiency_score"] for analytic in data]), 2) if data else 0.00
 
 
 @st.cache_data(ttl=TTL_CACHE_TIME)
 def get_battery_alerts() -> list[Any]:
-    after = datetime.now(timezone.utc) - timedelta(minutes=5)
-    return api_client.request("GET", "/telemetry/alerts/battery", params={"after": after}).data
+    after = datetime.now(timezone.utc) - timedelta(minutes=120)
+    return api_client.sync_request("GET", "/telemetry/alerts/battery", params={"after": after}).data
 
 
 @st.cache_data(ttl=TTL_CACHE_TIME)
 def get_temperature_alerts() -> list[Any]:
-    after = datetime.now(timezone.utc) - timedelta(minutes=5)
-    return api_client.request("GET", "/telemetry/alerts/temperature", params={"after": after}).data
+    after = datetime.now(timezone.utc) - timedelta(minutes=120)
+    return api_client.sync_request("GET", "/telemetry/alerts/temperature", params={"after": after}).data
 
 
 @st.cache_data(ttl=TTL_CACHE_TIME)
 def get_model_loaded_and_version() -> tuple[bool, dict[Any]]:
-    loaded = api_client.request("GET", "/ml/info/status").data["loaded"]
-    models = api_client.request("GET", "/ml/metadata").data
+    loaded = api_client.sync_request("GET", "/ml/info/status").data["loaded"]
+    models = api_client.sync_request("GET", "/ml/metadata").data
 
     return loaded, models
 
 
 @st.cache_data(ttl=TTL_CACHE_TIME)
 def get_last_prediction() -> APIResponse:
-    return api_client.request("GET", "/ml/predictions/latest")
+    return api_client.sync_request("GET", "/ml/predictions/latest")
 
 
 # header for the page
@@ -136,18 +133,26 @@ st.divider()
 tab_batt, tab_temp = st.tabs(["Battery Alerts", "Temperature Alerts"])
 
 with tab_batt:
-    st.metric("Total Devices", len(battery_alerts), border=True, help="How many Devices have low Battery")
+    count_col, unique_col = st.columns(2)
+
+    with count_col:
+        st.metric("Detection count", len(battery_alerts), border=True,
+                  help="How many low battery datapoints were detected")
+
+    with unique_col:
+        st.metric("Total Devices", len(list(set([batt_alert["device_id"] for batt_alert in battery_alerts]))), border=True,
+                  help="How many Devices have low battery")
 
     if battery_alerts:
         st.dataframe(
             battery_alerts,
             column_config={
-                "current_battery_percentage": st.column_config.ProgressColumn("Battery", format="%d%%"),
+                "current_battery_percentage": st.column_config.ProgressColumn("Battery", format="%d%%", min_value=0, max_value=100),
                 "device_name": st.column_config.TextColumn("Device"),
                 "device_location": st.column_config.TextColumn("Location"),
                 "timestamp": st.column_config.DatetimeColumn("Timestamp", format="DD.MM.YYYY HH:mm", timezone="utc"),
                 "id": None,
-                "devie_id": None,
+                "device_id": None,
                 "voltage": None,
                 "current": None,
                 "signal_strength": None,
@@ -162,18 +167,26 @@ with tab_batt:
         st.success("All batteries are within normal range")
 
 with tab_temp:
-    st.metric("Total Devices", len(temp_alerts), border=True, help="How many Devices have high temperature")
+    count_col, unique_col = st.columns(2)
+
+    with count_col:
+        st.metric("Detection count", len(temp_alerts), border=True,
+                  help="How many high temperature datapoints were detected")
+
+    with unique_col:
+        st.metric("Total Devices", len(list(set([temp_alert["device_id"] for temp_alert in temp_alerts]))), border=True,
+                  help="How many Devices have high temperature")
 
     if temp_alerts:
         st.dataframe(
             temp_alerts,
             column_config={
-                "temperature": st.column_config.NumberColumn("Temperature", format="%d%°C"),
+                "temperature": st.column_config.NumberColumn("Temperature", format="%d °C"),
                 "device_name": st.column_config.TextColumn("Device"),
                 "device_location": st.column_config.TextColumn("Location"),
                 "timestamp": st.column_config.DatetimeColumn("Timestamp", format="DD.MM.YYYY HH:mm", timezone="utc"),
                 "id": None,
-                "devie_id": None,
+                "device_id": None,
                 "voltage": None,
                 "current": None,
                 "signal_strength": None,

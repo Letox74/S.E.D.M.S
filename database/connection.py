@@ -69,7 +69,7 @@ class DatabaseManager:
                 return await cursor.fetchall()
 
         except Exception as e:
-            error_logger.error(f"Fetch all failed: {e}")
+            error_logger.error(f"Fetch all failed: {e} with query: \n{query}")
             return []
 
     async def fetch_one(self, query: str, params: tuple = ()) -> aiosqlite.Row | None:
@@ -78,7 +78,7 @@ class DatabaseManager:
                 return await cursor.fetchone()
 
         except Exception as e:
-            error_logger.error(f"Fetch one failed: {e}")
+            error_logger.error(f"Fetch one failed: {e} with query: \n{query}")
             return None
 
     async def execute_transaction(self, query: str, params: tuple = ()) -> aiosqlite.Row | int:

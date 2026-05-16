@@ -8,29 +8,27 @@ import pytz
 import streamlit as st
 from streamlit_javascript import st_javascript
 
-from frontend.utils import check_for_password_verification, get_api_client
+from frontend.utils import check_for_password_verification, api_client
 
 st.set_page_config(layout="wide")
 
-# api client
-api_client = get_api_client()
 
 # api call functions
 @st.cache_data(ttl=60 * 30)
 def fetch_device_fleet() -> Any:
-    return api_client.request("GET", "/devices/").data
+    return api_client.sync_request("GET", "/devices/").data
 
 
 @st.cache_data(ttl=60)
 def get_telemetry_data(device_id: str, since: datetime) -> Any:
     params = {k: v for k, v in zip(["device_id", "start_datetime"], [device_id, since]) if v}
-    return api_client.request("GET", f"/telemetry/history", params=params).data
+    return api_client.sync_request("GET", f"/telemetry/history", params=params).data
 
 
 @st.cache_data(ttl=60)
 def get_analytics_data(device_id: str, since: datetime) -> Any:
     params = {k: v for k, v in zip(["device_id", "start_datetime"], [device_id, since]) if v}
-    return api_client.request("GET", f"/analytics/history", params=params).data
+    return api_client.sync_request("GET", f"/analytics/history", params=params).data
 
 
 check_for_password_verification()

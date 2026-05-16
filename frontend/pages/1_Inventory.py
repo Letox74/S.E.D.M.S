@@ -4,33 +4,31 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
-from frontend.utils import check_for_password_verification, get_api_client
+from frontend.utils import check_for_password_verification, api_client
 from internal.schemas.device_models import DeviceTypes, DeviceStatus, DeviceUpdate, DeviceCreate
 
 st.set_page_config(layout="wide")
 
 TTL_CACHE_TIME = 60 * 30  # 30 minutes
 
-# api client
-api_client = get_api_client()
 
 # api call functions
 @st.cache_data(ttl=TTL_CACHE_TIME)
 def fetch_device_fleet() -> Any:
-    return api_client.request("GET", "/devices/").data
+    return api_client.sync_request("GET", "/devices/").data
 
 
 def update_device(data: DeviceUpdate, device_id: str) -> None | str:
-    result = api_client.request("PATCH", f"/devices/{device_id}", json={"data": data.model_dump()})
+    result = api_client.sync_request("PATCH", f"/devices/{device_id}", json={"data": data.model_dump()})
     return result.data["detail"] if not result.is_success else None
 
 
 def delete_device(device_id: str) -> None:
-    api_client.request("DELETE", f"/devices/{device_id}")
+    api_client.sync_request("DELETE", f"/devices/{device_id}")
 
 
 def register_new_device(data: DeviceCreate) -> None:
-    api_client.request("POST", "/devices/", json={"data": data.model_dump()})
+    api_client.sync_request("POST", "/devices/", json={"data": data.model_dump()})
 
 
 # header and etc.
