@@ -77,6 +77,14 @@ dependencies = [
     "wrapt==2.1.2",
 ]
 
+[tool.setuptools]
+package-dir = {"" = "."}
+py-modules = ["semds"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["api", "cli", "core", "logs", "database", "frontend", "internal"]
+
 [project.scripts]
 sedms = "sedms:main"
 
