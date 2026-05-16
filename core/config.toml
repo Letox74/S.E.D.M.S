@@ -1,6 +1,6 @@
 [api]
 prefix = "/sedms/api"
-docs_enpoint = "/docs"
+docs_endpoint = "/docs"
 redoc_endpoint = "/redoc"
 openapi_endpoint = "/openapi.json"
 

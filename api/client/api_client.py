@@ -23,7 +23,7 @@ class APIResponse:
 class APIClient:
     def __init__(self) -> None:
         self.base_url = API_URL
-        self._headers = {"API-KEY": API_KEY}
+        self._headers = {"API-KEY": settings.api.key}
 
     def sync_request(self, method: str, path: str, **kwargs) -> APIResponse:
         with httpx.Client(base_url=self.base_url, headers=self._headers) as client:
