@@ -50,23 +50,21 @@ def handle_error(show_full_error: bool = True, show_error: bool = True) -> Calla
     def decorator(func: Callable) -> Callable | Coroutine:
         if inspect.iscoroutinefunction(func):
             @functools.wraps(func)
-            async def async_wrapper(*args, **kwargs) -> Any | None:
+            async def wrapper(*args, **kwargs) -> Any | None:
                 try:
                     return await func(*args, **kwargs)
                 except Exception as e:
                     _handle_exception(e, show_error, show_full_error)
 
-            return async_wrapper
-
         else:
             @functools.wraps(func)
-            def sync_wrapper(*args, **kwargs) -> Any | None:
+            def wrapper(*args, **kwargs) -> Any | None:
                 try:
                     return func(*args, **kwargs)
                 except Exception as e:
                     _handle_exception(e, show_error, show_full_error)
 
-            return sync_wrapper
+        return wrapper
     return decorator
 
 
@@ -76,7 +74,7 @@ def spinner(message: str) -> Callable | Coroutine:
             @handle_error(show_full_error=False)
             @functools.wraps(func)
             async def wrapper(*args, **kwargs) -> Any:
-                with Status(f"[bold cyan]{message}[/bold cyan]", spinner="dots"):
+                with Status(f"[bold cyan]{message}[/bold cyan]", spinner="arc"):
                     return await func(*args, **kwargs)
 
 
