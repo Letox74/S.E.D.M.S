@@ -14,8 +14,8 @@ def is_api_online(func: Callable) -> Any:
 
         @functools.wraps(func)
         async def wrapper(*args, **kwargs) -> Any:
-            if (await api_client.async_request("GET", "/online")).is_success:
-                kwargs["is_api_online"] = True
+            if (await api_client.async_request("GET", "/online")).is_success:  # check if the api is online
+                kwargs["is_api_online"] = True  # set the func parameter to true
 
             else:
                 kwargs["is_api_online"] = False
@@ -44,7 +44,7 @@ def bypass_error_handling(func: Callable) -> Callable:
             try:
                 return await func(*args, **kwargs)
             except Exception as e:
-                setattr(e, "__bypass_error_handling__", True)
+                setattr(e, "__bypass_error_handling__", True)  # set a custom attribute to the error for the @handle_error
                 raise e
 
     else:
@@ -60,10 +60,11 @@ def bypass_error_handling(func: Callable) -> Callable:
 
 
 def _handle_exception(e: Exception, show_error: bool, show_full_error: bool) -> None:
-    if getattr(e, "__bypass_error_handling__", False):
+    if getattr(e, "__bypass_error_handling__", False):  # check if the function was decorated by @bypass_error_handling
         raise e
 
     console = Console()
+    # format the exception and print
     if show_error:
         msg = "".join(traceback.format_exception(type(e), e, e.__traceback__)) if show_full_error \
             else "".join(traceback.format_exception_only(type(e), e)).strip()
@@ -74,9 +75,6 @@ def _handle_exception(e: Exception, show_error: bool, show_full_error: bool) -> 
 
 def handle_error(show_full_error: bool = True, show_error: bool = True) -> Callable | Coroutine:
     def decorator(func: Callable) -> Callable | Coroutine:
-        if getattr(func, "__bypass_error_handling__", False):
-            return func
-
         if inspect.iscoroutinefunction(func):
             @functools.wraps(func)
             async def wrapper(*args, **kwargs) -> Any | None:

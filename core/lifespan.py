@@ -12,6 +12,7 @@ error_logger = logging.getLogger("Error")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # inizialize the database manager class an put it in the app.state
     db_manager = DatabaseManager(settings.db.path)
     await db_manager.connect()
     await db_manager.initialize_schema()
@@ -21,5 +22,6 @@ async def lifespan(app: FastAPI):
 
     yield
 
+    # after the shutdown disconnect from the database
     await db_manager.disconnect()
     app_logger.info("Application shutdown completed successfully")

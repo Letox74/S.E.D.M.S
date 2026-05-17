@@ -18,6 +18,6 @@ def generate_new_api_key(nbytes: int = 32, override_in_env: bool = True):
 
     if override_in_env:
         set_key(ENV_PATH, "API_KEY", new_key)
-        load_dotenv(override=True)
+        load_dotenv(override=True, dotenv_path=ENV_PATH)
 
     return new_key

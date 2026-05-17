@@ -18,11 +18,6 @@ from .handler import save_model, save_model_metadata
 from .optimizer import optimize_regression_model
 from .processor import create_data
 
-if settings.other.ignore_warnings:
-    import warnings
-
-    warnings.filterwarnings("ignore")
-
 ml_logger = logging.getLogger("ML")
 
 
@@ -70,8 +65,12 @@ async def _train_regression_model(X, y, name, optimize: bool, analytics_count: i
 
     if not optimize:
         lgbm_model = lgbm.LGBMRegressor(**_get_regression_parameters(analytics_count))
-        lgbm_model.fit(X_train, y_train, eval_set=[(X_val, y_val)],
-                            callbacks=[lgbm.callback.early_stopping(25, verbose=False), lgbm.log_evaluation(period=0)])
+        lgbm_model.fit(
+            X_train,
+            y_train,
+            eval_set=[(X_val, y_val)],
+            callbacks=[lgbm.callback.early_stopping(25, verbose=False), lgbm.log_evaluation(period=0)]
+        )
 
         preds = lgbm_model.predict(X_test)
 
@@ -79,6 +78,7 @@ async def _train_regression_model(X, y, name, optimize: bool, analytics_count: i
         lgbm_model, best_params = await optimize_regression_model(analytics_count, X_train, X_val, X_test, y_train, y_val, y_test)
         preds = lgbm_model.predict(X_test)
 
+    # evaluate the model and save the data
     metrics = await evaluate_model(preds, y_test)
     save_model(lgbm_model, name)
     save_model_metadata(lgbm_model, name, metrics, best_params)
@@ -90,6 +90,7 @@ async def train_regression(optimize: bool, analytics_count: int, db: DatabaseMan
 
     ml_logger.info(f"ID: {id}\t Model training started (Optimize: {optimize})")
 
+    # train the models
     model_data = await asyncio.gather(*[create_data(None, None, minutes, db) for minutes in settings.ml.prediction_horizons])
     tasks = [
         _train_regression_model(model_data[i][0], model_data[i][1], name, optimize, analytics_count)
@@ -97,6 +98,7 @@ async def train_regression(optimize: bool, analytics_count: int, db: DatabaseMan
     ]
     await asyncio.gather(*tasks)
 
+    # calulate the time it took for the training
     end_time = time.perf_counter()
     if (end_time - start_time) / 60 > 1:
         value = (end_time - start_time) / 60

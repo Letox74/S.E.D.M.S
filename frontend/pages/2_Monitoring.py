@@ -8,7 +8,7 @@ import pytz
 import streamlit as st
 from streamlit_javascript import st_javascript
 
-from frontend.utils import check_for_password_verification, api_client
+from frontend.utils import check_for_password_verification, api_client, localize_tz
 
 st.set_page_config(layout="wide")
 
@@ -48,6 +48,7 @@ with st.sidebar:
     st.subheader("Filters")
     st.divider()
 
+    # let the user select a device for the monitoring
     device_list = fetch_device_fleet()
     device_options = {f"{device["name"]} ({device["location"]})": device["id"] for device in device_list}
 
@@ -59,6 +60,7 @@ with st.sidebar:
     time_preset = st.radio("Quick Select", ["Last Hour", "Last 24h", "Last 7 Days", "Custom"], index=1)
 
     if time_preset == "Custom":
+        # time input
         after_date = st.date_input("Start Date", value=st.session_state.after_date)
         after_time = st.time_input("Start Time", value=st.session_state.after_time)
         naive_datetime = datetime.combine(after_date, after_time)
@@ -75,19 +77,6 @@ with st.sidebar:
 
     display_time = after_datetime.astimezone(user_tz)
     st.info(f"Showing data since: \n\n**{display_time.strftime("%Y-%m-%d %H:%M")}**")
-
-
-# page content
-# quick func to shift all timestamps in the users tz
-def localize_tz(df: pd.DataFrame) -> pd.DataFrame:
-    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce", yearfirst=True)
-    if df["timestamp"].dt.tz is None:
-        df["timestamp"] = df["timestamp"].dt.tz_localize("UTC")
-
-    df["timestamp"] = df["timestamp"].dt.tz_convert(user_tz)
-
-    return df
-
 
 # title and etc.
 st.header("Monitoring")
@@ -111,17 +100,14 @@ elif not analytics_raw:
     st.warning("No Analytic data found for the selected timeframe")
 
 else:
+    # convert data into a dataframe and localize the user timezone
     df_telemetry = pd.DataFrame(telemetry_raw)
     df_analytics = pd.DataFrame(analytics_raw)
-    print(f"{df_telemetry.shape = }")
-    print(f"{df_analytics.shape = }")
 
     df_telemetry = localize_tz(df_telemetry)
-    df_telemetry["timestamp"] = pd.to_datetime(df_telemetry["timestamp"], errors="coerce", yearfirst=True)
     df_telemetry = df_telemetry.sort_values("timestamp")
 
     df_analytics = localize_tz(df_analytics)
-    df_analytics["timestamp"] = pd.to_datetime(df_analytics["timestamp"], errors="coerce", yearfirst=True)
     df_analytics = df_analytics.sort_values("timestamp")
 
     # pyhsical metrics

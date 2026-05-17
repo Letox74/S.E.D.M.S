@@ -4,7 +4,7 @@ from sklearn.metrics import root_mean_squared_error
 
 optuna.logging.set_verbosity(optuna.logging.CRITICAL)
 
-
+# get the amount of rounds the model is optimized
 def _get_trials(analytics_count: int) -> int:
     mapping_dict = {
         analytics_count < 5_000: 50,
@@ -42,14 +42,18 @@ async def optimize_regression_model(
         }
 
         lgbm_model = lgbm.LGBMRegressor(**params)
-        lgbm_model.fit(X_train, y_train, eval_set=[(X_val, y_val)],
-                       callbacks=[lgbm.callback.early_stopping(25, verbose=False), lgbm.log_evaluation(period=0)])
+        lgbm_model.fit(
+            X_train,
+            y_train,
+            eval_set=[(X_val, y_val)],
+            callbacks=[lgbm.callback.early_stopping(25, verbose=False), lgbm.log_evaluation(period=0)]
+        )
 
         preds = lgbm_model.predict(X_test)
         return root_mean_squared_error(y_test, preds)
 
     # create the study
-    study = optuna.create_study(direction="minimize")
+    study = optuna.create_study(direction="minimize")  # minimize the rmse
     study.optimize(objective, n_trials=_get_trials(analytics_count), n_jobs=4, timeout=60 * 30)  # 30 minutes
 
     # train final model

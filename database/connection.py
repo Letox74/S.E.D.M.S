@@ -21,7 +21,7 @@ SCHEMAS = [CREATE_DEVICES_SQL, CREATE_DEVICE_STATUS_LOG_SQL, CREATE_TELEMETRY_SQ
 error_logger = logging.getLogger("Error")
 app_logger = logging.getLogger("App")
 
-
+# function to convert datetime from the database to utc
 def _adapt_datetime_utc(val: bytes) -> datetime:
     dt_str =  val.decode()
 
@@ -44,7 +44,7 @@ class DatabaseManager:
             self._connection = await aiosqlite.connect(
                 self.db_path,
                 detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
-            self._connection.row_factory = aiosqlite.Row  # enable Row factory to access columns by name
+            self._connection.row_factory = aiosqlite.Row  # enable Row factory to access columns by name (like a dict)
 
             # WAL Mode, Foreign Keys and auto indexing activation
             await self._connection.execute("PRAGMA journal_mode = WAL;")

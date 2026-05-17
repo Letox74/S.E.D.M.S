@@ -8,7 +8,7 @@ try:
 
     use_rich = True
 
-except ImportError, NameError:
+except ImportError, NameError:  # if rich is not installed
     use_rich = False
 
 

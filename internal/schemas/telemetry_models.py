@@ -11,7 +11,7 @@ class TelemetryBase(BaseModel):
         examples=["57f087ae-4b24-473d-bb52-9efeb1d36ba6"]
     )
 
-    voltage: float = Field(
+    voltage: float | int = Field(
         default=...,
         description="The current voltage of the Device, measured in Volts",
         examples=[230.5, 400.0],
@@ -19,7 +19,7 @@ class TelemetryBase(BaseModel):
         le=500
     )
 
-    current: float = Field(
+    current: float | int = Field(
         default=...,
         description="The electric current, measured in Ampere",
         examples=[12.4],
@@ -27,7 +27,7 @@ class TelemetryBase(BaseModel):
         le=100
     )
 
-    signal_strength: float = Field(
+    signal_strength: float | int = Field(
         default=...,
         description="Received signal strength indicator in dBm. Values closer to 0 indicate a stronger signal",
         examples=[-65.5],
@@ -35,7 +35,7 @@ class TelemetryBase(BaseModel):
         le=0
     )
 
-    frequency: float = Field(
+    frequency: float | int = Field(
         default=...,
         description="Grid frequency in Hertz",
         examples=[50.0],
@@ -43,7 +43,7 @@ class TelemetryBase(BaseModel):
         le=65
     )
 
-    temperature: float = Field(
+    temperature: float | int = Field(
         default=...,
         description="The temperature of the Device, measured in Celcius",
         examples=[30.0, 23.4],
@@ -51,7 +51,7 @@ class TelemetryBase(BaseModel):
         le=100
     )
 
-    current_battery_percentage: float = Field(
+    current_battery_percentage: float | int = Field(
         default=-1.0,  # if the Device does not have a battery
         description="The current battery percentage of the Device",
         examples=[43.2, 76.9],

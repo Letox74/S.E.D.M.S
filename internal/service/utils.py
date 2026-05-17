@@ -1,23 +1,29 @@
 import logging
 from datetime import datetime
-from typing import Optional, Never
+from typing import Optional, TypeVar
+from uuid import uuid4
 
 import aiosqlite
 from aiosqlite import Row
 
 from database.connection import DatabaseManager
-from ..schemas.analytic_models import AnalyticsRead, AnalyticsCreate
-from ..schemas.device_models import DeviceRead, DeviceCreate
-from ..schemas.prediction_models import PredictionRead, PredictionCreate
-from ..schemas.telemetry_models import TelemetryRead, TelemetryCreate
+from internal.schemas.analytic_models import AnalyticsRead, AnalyticsCreate
+from internal.schemas.device_models import DeviceRead, DeviceCreate
+from internal.schemas.prediction_models import PredictionRead, PredictionCreate
+from internal.schemas.telemetry_models import TelemetryRead, TelemetryCreate
+
+T = TypeVar("T", TelemetryRead, AnalyticsRead, PredictionRead)
+CreateData = TypeVar("CreateData", DeviceCreate, TelemetryCreate, AnalyticsCreate, PredictionCreate)
+ReadData = TypeVar("ReadData", DeviceRead, TelemetryRead, AnalyticsRead, PredictionRead)
 
 app_logger = logging.getLogger("App")
 telemetry_logger = logging.getLogger("Telemetry")
 analytics_logger = logging.getLogger("Analytics")
 ml_logger = logging.getLogger("ML")
 
+
 # method for device, telemetry and analytics
-def _handle_new_row_result(table_name: str, row: Row) -> DeviceRead | TelemetryRead | AnalyticsRead:
+def _handle_new_row_result(table_name: str, row: Row) -> ReadData:
     mapping_dict = {
         "devices": (
             lambda: app_logger.info(f"New Device registered: {row["id"]} of type {row["type"]}"),
@@ -37,16 +43,19 @@ def _handle_new_row_result(table_name: str, row: Row) -> DeviceRead | TelemetryR
         )
     }
 
-    mapping_dict[table_name][0]()
-    return mapping_dict[table_name][1]()
+    mapping_dict[table_name][0]()  # logging
+    return mapping_dict[table_name][1]()  # creates the Class
 
 
 async def db_insert_new_row(
-        data: DeviceCreate | TelemetryCreate | AnalyticsCreate | PredictionCreate,
+        data: CreateData,
         table_name: str,
         db: DatabaseManager
 ) -> DeviceRead | TelemetryRead | AnalyticsRead | PredictionRead:
     fields = data.model_dump()  # to not type it manually
+
+    if table_name == "devices":
+        fields = {**{"id": str(uuid4())}, **fields}  # generate key and union the fields
 
     # prepare sql string
     colums = ", ".join(f"{key}" for key in fields.keys())
@@ -59,29 +68,33 @@ async def db_insert_new_row(
         VALUES ({placeholders})
         RETURNING *;
     """
-    row = await db.execute_transaction(sql, values)  # retrieve the entire row (due to RETURNING *)
+    row = await db.execute_transaction(sql, values)  # retrieve the entire row back (due to RETURNING *)
     return _handle_new_row_result(table_name, row)
 
 
 def _return_row(
-        rows: list[aiosqlite.Row] | list[Never],
-        table_name: str
-) -> list[TelemetryRead] | list[AnalyticsRead] | list[PredictionRead] | list[Never]:
-    if table_name == "telemetry":
-        return [TelemetryRead(**dict(row)) for row in rows]
+        rows: list[aiosqlite.Row] | aiosqlite.Row,
+        table_name: str,
+        return_list: bool
+) -> list[T] | T:
+    mapping_dict = {
+        "telemetry": lambda: [TelemetryRead(**dict(row)) for row in rows]
+        if return_list else TelemetryRead(**dict(rows)),
 
-    elif table_name == "analytics":
-        return [AnalyticsRead(**dict(row)) for row in rows]
+        "analytics": lambda: [AnalyticsRead(**dict(row)) for row in rows]
+        if return_list else AnalyticsRead(**dict(rows)),
 
-    return [PredictionRead(**dict(row)) for row in rows]
+        "predictions": lambda: [PredictionRead(**dict(row)) for row in rows]
+        if return_list else PredictionRead(**dict(rows))
+    }
+    return mapping_dict[table_name]()
 
 
-# methods for telemetry and analytics
 async def db_get_latest_row(
         device_id: Optional[str],
         table_name: str,
         db: DatabaseManager
-) -> TelemetryRead | AnalyticsRead | PredictionRead | None:
+) -> T | None:
     sql = f"""
         SELECT *
         FROM {table_name}
@@ -94,13 +107,7 @@ async def db_get_latest_row(
     if row is None:
         return None
 
-    elif table_name == "telemetry":
-        return TelemetryRead(**dict(row))
-
-    elif table_name == "analytics":
-        return AnalyticsRead(**dict(row))
-
-    return PredictionRead(**dict(row))
+    return _return_row(row, table_name, return_list=False)
 
 
 async def db_get_history(
@@ -109,8 +116,7 @@ async def db_get_history(
         limit: Optional[int],
         table_name: str,
         db: DatabaseManager
-) -> list[TelemetryRead] | list[AnalyticsRead] | list[PredictionRead] | list[Never]:
-    # strftime to a string if datetime was set, then prepare the params
+) -> list[T]:
     daterange = daterange or [None]
     params = tuple(param for param in (device_id, *daterange, limit) if param is not None)
 
@@ -132,7 +138,7 @@ async def db_get_history(
     """
     rows = await db.fetch_all(sql, params)
 
-    return _return_row(rows, table_name)
+    return _return_row(rows, table_name, return_list=True)
 
 
 async def db_get_range(
@@ -140,7 +146,7 @@ async def db_get_range(
         daterange: list[datetime],
         table_name: str,
         db: DatabaseManager
-) -> list[TelemetryRead] | list[AnalyticsRead] | list[PredictionRead] | list[Never]:
+) -> list[T]:
     params = tuple([param for param in (*daterange, device_id) if param is not None])
 
     sql = f"""
@@ -150,9 +156,8 @@ async def db_get_range(
             {"AND device_id = ?" if device_id else ""};
     """
     rows = await db.fetch_all(sql, params)
-    # here I don't need to check if the date is None, because it's not an optional parameter
 
-    return _return_row(rows, table_name)
+    return _return_row(rows, table_name, return_list=True)
 
 
 async def db_delete(
@@ -163,13 +168,13 @@ async def db_delete(
         db: DatabaseManager
 ) -> int:
     values = tuple(param for param in (device_id, before, limit) if param is not None)  # prepare the params
+
     where_clause = []
     if device_id:
         where_clause.append("device_id = ?")
     if before:
         where_clause.append("timestamp < ?")
     where_str = f"WHERE {" AND ".join(where_clause)}" if where_clause else ""
-
 
     sql = f"""
         DELETE FROM {table_name}

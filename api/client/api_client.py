@@ -6,7 +6,7 @@ from starlette import status
 
 from core.config import settings
 
-API_URL = f"{settings.base_url}:{settings.api.port}{settings.api.urls.prefix}"
+API_URL = f"{settings.base_url}:{settings.api.port}{settings.api.urls.prefix}"  # define the url for the api
 
 
 @dataclass(kw_only=True)
@@ -23,15 +23,15 @@ class APIResponse:
 class APIClient:
     def __init__(self) -> None:
         self.base_url = API_URL
-        self._headers = {"API-KEY": settings.api.key}
+        self._headers = {"API-KEY": settings.api.key}  # set the api key header
 
     def sync_request(self, method: str, path: str, **kwargs) -> APIResponse:
         with httpx.Client(base_url=self.base_url, headers=self._headers) as client:
             try:
-                response = client.request(method, path, **kwargs)
+                response = client.request(method, path, **kwargs)  # send a request
                 return APIResponse(
                     status_code=response.status_code,
-                    data=response.json() if response.status_code != status.HTTP_204_NO_CONTENT else None
+                    data=response.json() if response.status_code != status.HTTP_204_NO_CONTENT else None  # check for 204
                 )
 
             except Exception as e:

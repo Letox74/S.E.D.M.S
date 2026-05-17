@@ -124,6 +124,7 @@ def _get_aggregations() -> dict[str, str]:
 async def get_raw_data(device_id: Optional[str], after: Optional[datetime], db: DatabaseManager) -> pd.DataFrame:
     params = tuple([param for param in (device_id, after) if param is not None])
 
+    # prepare where clause
     where_clause = []
     if device_id:
         where_clause.append("T01.device_id = ?")
@@ -158,6 +159,7 @@ async def get_raw_data(device_id: Optional[str], after: Optional[datetime], db: 
     """
     rows = await db.fetch_all(sql, params)
 
+    # convert to df and set the timestamp column as index
     df = pd.DataFrame([dict(row) for row in rows])
     df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce", yearfirst=True)
     df = df.dropna(subset=["timestamp"])

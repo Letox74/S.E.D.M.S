@@ -7,6 +7,7 @@ from rich.prompt import Confirm
 
 console = Console()
 
+# simple print
 @overload
 def print_to_console(*, custom: str, justify: Optional[str] = None, print_whitespace: bool = False) -> None: ...
 
@@ -20,7 +21,7 @@ def print_to_console(
         message: Optional[str] = None,
         *,
         custom: Optional[str] = None,
-        justify: Optional[str] = None,
+        justify: str = "left",
         print_whitespace: bool = False
 ) -> None:
     if print_whitespace:
@@ -32,17 +33,17 @@ def print_to_console(
     else:
         console.print(f"[{color}]{message}[/{color}]", justify=justify)
 
-
+# print a panel
 def print_panel(
         message: str,
         title: Optional[str] = None,
-        box: Optional[box.Box] = box.ROUNDED,
+        box: box.Box = box.ROUNDED,
         border_style: str = "none",
         padding: tuple[int, int] = (0, 1),  # first element is padding top to bottom and second element left and right
         expand: bool = False,
         width: Optional[int] = None,
         height: Optional[int] = None,
-        justify: Optional[str] = None,
+        justify: str = "left",
         print_whitespace: bool = False
 ) -> None:
     if print_whitespace:
@@ -63,7 +64,7 @@ def print_panel(
         justify=justify
     )
 
-
+# ask the user
 def confirm(
         question: str,
         default: bool = True,

@@ -9,6 +9,7 @@ from .handler import get_raw_data
 
 
 def _apply_sin_cos(df: pd.DataFrame, target_time) -> pd.DataFrame:
+    # use sin and cos, so that the model understands that 23:00 is almost the same as 1:00
     df["hour_sin"] = np.sin(2 * np.pi * (target_time.hour / 24))
     df["hour_cos"] = np.cos(2 * np.pi * (target_time.hour / 24))
 

@@ -1,13 +1,13 @@
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import Never, Optional
-from uuid import uuid4
+from typing import Optional
 
 from fastapi import HTTPException, status
 
 from database.connection import DatabaseManager
 from internal.schemas.device_models import DeviceRead, DeviceCreate, DeviceUpdate
+from .utils import db_insert_new_row
 
 app_logger = logging.getLogger("App")
 error_logger = logging.getLogger("Error")
@@ -43,7 +43,7 @@ async def _update_status_log(device_id: str, device_status: str, db: DatabaseMan
     await db.execute_transaction(sql, (device_id, device_status))
 
 
-async def db_get_all_devices(db: DatabaseManager) -> list[DeviceRead] | list[Never]:
+async def db_get_all_devices(db: DatabaseManager) -> list[DeviceRead]:
     sql = f"""
         SELECT * 
         FROM devices;
@@ -54,27 +54,12 @@ async def db_get_all_devices(db: DatabaseManager) -> list[DeviceRead] | list[Nev
 
 
 async def db_create_device(data: DeviceCreate, db: DatabaseManager) -> DeviceRead:
-    fields = data.model_dump()  # to not type it manually
-    fields = {**{"id": str(uuid4())}, **fields}  # generate key and union the fields
-
-    # prepare sql string
-    colums = ", ".join(f"{key}" for key in fields.keys())
-    placeholders = ", ".join("?" for _ in fields)
-    values = tuple(fields.values())
-
-    sql = f"""
-        INSERT INTO devices
-        ({colums})
-        VALUES ({placeholders})
-        RETURNING *;
-    """
-    row = await db.execute_transaction(sql, values)  # retrieve the entire row (due to RETURNING *)
-    app_logger.info(f"New Device registered: {fields["id"]} of type {fields["type"]}")
+    result = await db_insert_new_row(data, "devices", db)
 
     # insert status into the status log
-    await _update_status_log(fields["id"], fields["status"], db)
+    await _update_status_log(result.id, result.status, db)
 
-    return DeviceRead(**dict(row))
+    return result
 
 
 async def db_bulk_register(data: list[DeviceCreate], db: DatabaseManager) -> list[DeviceRead]:
@@ -82,7 +67,7 @@ async def db_bulk_register(data: list[DeviceCreate], db: DatabaseManager) -> lis
     return await asyncio.gather(*func_list)
 
 
-async def db_search_devices(q: str, db: DatabaseManager) -> list[DeviceRead] | list[Never]:
+async def db_search_devices(q: str, db: DatabaseManager) -> list[DeviceRead]:
     # search in the name or descripton
     # Use collate nocase for case insensitivity
     sql = f"""
@@ -103,7 +88,7 @@ async def db_filter_devices(
         is_active: Optional[bool],
         has_battery: Optional[bool],
         db: DatabaseManager
-) -> list[DeviceRead] | list[Never]:
+) -> list[DeviceRead]:
     filters = {
         "type": type_,
         "firmware_version": firmware_version,
@@ -130,7 +115,7 @@ async def db_filter_devices(
     return [DeviceRead(**dict(row)) for row in rows]
 
 
-async def db_get_active_devices(db: DatabaseManager) -> list[DeviceRead] | list[Never]:
+async def db_get_active_devices(db: DatabaseManager) -> list[DeviceRead]:
     sql = """
         SELECT *
         FROM devices 

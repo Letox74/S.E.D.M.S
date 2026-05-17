@@ -16,6 +16,7 @@ def setup_cli(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("-v", "--version", action="version", version=f"Current S.E.D.M.S version: {settings.version}")
     # define version argument here, because it doesn't need a subparser
 
+    # add subparsers from the main parser
     subparsers = parser.add_subparsers(
         title="commands",
         dest="command",
@@ -23,6 +24,7 @@ def setup_cli(parser: argparse.ArgumentParser) -> None:
         required=True
     )
 
+    # setup all the cli commands
     setup_analytics_cli(subparsers)
     setup_db_cli(subparsers)
     setup_devices_cli(subparsers)

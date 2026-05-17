@@ -15,6 +15,7 @@ async def calculate_statistics(data: list[TelemetryRead], db: DatabaseManager) -
     timestamps = [telemetry.timestamp for telemetry in data]
     device_id = data[0].device_id
 
+    # gather calculations
     results = await asyncio.gather(
         _calculate_power(power),
         _calculate_voltage([telemetry.voltage for telemetry in data]),
@@ -25,12 +26,12 @@ async def calculate_statistics(data: list[TelemetryRead], db: DatabaseManager) -
     )
     other_results = await _calculate_other(str(data[0].device_id), power, timestamps, db)
     other_dict = {"device_id": device_id} | other_results
-    results_dict = reduce(lambda a, b: a | b, results, other_dict)
+    results_dict = reduce(lambda a, b: a | b, results, other_dict)  # combine every result
 
     return AnalyticsCreate(**results_dict)
 
 
-def _helper_calculate(name, data: list[float]) -> dict[str, float]:
+def _helper_calculate(name, data: list[float | int]) -> dict[str, float]:
     return {
         f"avg_{name}": round(float(np.mean(data)), 2),
         f"peak_{name}": round(float(np.max(data)), 2),
@@ -39,27 +40,27 @@ def _helper_calculate(name, data: list[float]) -> dict[str, float]:
     }
 
 
-async def _calculate_power(data: list[float]) -> dict[str, float]:
+async def _calculate_power(data: list[float | int]) -> dict[str, float]:
     return _helper_calculate("power", data)
 
 
-async def _calculate_voltage(data: list[float]) -> dict[str, float]:
+async def _calculate_voltage(data: list[float | int]) -> dict[str, float]:
     return _helper_calculate("voltage", data)
 
 
-async def _calculate_current(data: list[float]) -> dict[str, float]:
+async def _calculate_current(data: list[float | int]) -> dict[str, float]:
     return _helper_calculate("current", data)
 
 
-async def _calculate_signal_strength(data: list[float]) -> dict[str, float]:
+async def _calculate_signal_strength(data: list[float | int]) -> dict[str, float]:
     return _helper_calculate("signal_strength", data)
 
 
-async def _calculate_temperature(data: list[float]) -> dict[str, float]:
+async def _calculate_temperature(data: list[float | int]) -> dict[str, float]:
     return _helper_calculate("temperature", data)
 
 
-async def _calculate_battery(data: list[float]) -> dict[str, float]:
+async def _calculate_battery(data: list[float | int]) -> dict[str, float]:
     return {
         f"avg_battery_percentage": round(float(np.mean(data)), 2),
         f"min_battery_percentage": round(float(np.min(data)), 2)
@@ -80,7 +81,7 @@ async def _db_helper_error_count(device_id: str, latest_timestamp: datetime, db:
     return row["count"]
 
 
-async def _calculate_energy_consumption(power: list[float], timestamps: list[datetime]) -> float:
+async def _calculate_energy_consumption(power: list[float | int], timestamps: list[datetime]) -> float | int:
     first_timestamp = timestamps[0]
     time_in_hours = [(timestamp - first_timestamp).total_seconds() / 3600 for timestamp in timestamps]
 
@@ -89,9 +90,9 @@ async def _calculate_energy_consumption(power: list[float], timestamps: list[dat
 
 async def _calculate_efficiency_score(
         error_count: int,
-        operation_hours: float,
-        power: list[float]
-) -> float:
+        operation_hours: float | int,
+        power: list[float | int]
+) -> float | int:
     std_power = np.std(power)
     avg_power = np.mean(power)
 
@@ -100,15 +101,16 @@ async def _calculate_efficiency_score(
     error_penalty = error_count * 0.05
 
     return max(0.0, min(100.0,
-                        (availability * 0.5 + stability * 0.5) * 100 - error_penalty))
+                        (availability * 0.5 + stability * 0.5) * 100 - error_penalty))  # weight availability and stability equally
 
 
 async def _calculate_other(
         device_id: str,
-        power: list[float],
+        power: list[float | int],
         timestamps: list[datetime],
         db: DatabaseManager
-) -> dict[str, float | datetime]:
+) -> dict[str, float | int | datetime]:
+    # get last reset and operation hours
     results = await asyncio.gather(
         get_last_status_timestamp(device_id, "online", db),
         _db_helper_error_count(device_id, timestamps[0], db)
@@ -116,6 +118,7 @@ async def _calculate_other(
     last_reset = results[0]
     operation_hours = (datetime.now(timezone.utc) - last_reset).total_seconds() / 3600
 
+    # get consumption and efficiency score
     energy_consumption, efficiency_score = await asyncio.gather(
         _calculate_energy_consumption(power, timestamps),
         _calculate_efficiency_score(results[1], operation_hours, power)

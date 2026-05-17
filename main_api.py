@@ -30,13 +30,14 @@ app = FastAPI(
 )
 
 if settings.api.activate_rate_limits:
-    # Add a limiter and an error handler
+    # add a limiter and an error handler
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
-    # Register the middleware so that the default limits apply
+    # register the middleware so that the default limits apply
     app.add_middleware(SlowAPIMiddleware)
 
+# is use_cors is set, add the CORS Middleware
 if settings.api.cors.use_cors:
     app.add_middleware(
         CORSMiddleware,
@@ -46,7 +47,7 @@ if settings.api.cors.use_cors:
         allow_headers=settings.api.cors.allowed_headers
     )
 
-# add custom middleware
+# add custom middleware that logs every request
 app.add_middleware(AuditMiddleware)
 
 # include routers
@@ -56,7 +57,7 @@ app.include_router(analytics_router, prefix=settings.api.urls.prefix)
 app.include_router(ml_router, prefix=settings.api.urls.prefix)
 
 
-# endpoint to check if the api is online
+# endpoint to check if the api is online (used for the cli for checking if the api is online)
 @app.get(
     path=f"{settings.api.urls.prefix}/online",
     description="Endpoint to check if the API is online",

@@ -30,7 +30,7 @@ async def db_get_analytics_history(
         daterange: Optional[list[datetime]],
         limit: Optional[int],
         db: DatabaseManager
-) -> list[AnalyticsRead] | list[Never]:
+) -> list[AnalyticsRead]:
     return await db_get_history(device_id, daterange, limit, "analytics", db)
 
 
@@ -38,7 +38,7 @@ async def db_get_analytics_range(
         device_id: Optional[str],
         daterange: list[datetime],
         db: DatabaseManager
-) -> list[AnalyticsRead] | list[Never]:
+) -> list[AnalyticsRead]:
     return await db_get_range(device_id, daterange, "analytics", db)
 
 
@@ -63,6 +63,7 @@ async def db_get_daily_summary(
     if summary_date is None:
         summary_date = date.today()
 
+    # combine the dates to a datetime
     start_dt = datetime.combine(summary_date, time.min, timezone.utc)
     end_dt = datetime.combine(summary_date, time.max, timezone.utc)
     params = tuple([param for param in (device_id, start_dt, end_dt, device_id) if param])
@@ -74,7 +75,7 @@ async def db_get_daily_summary(
             ROUND(AVG(T02.avg_current), 2)          AS avg_current,
             ROUND(AVG(T02.avg_signal_strength), 2)  AS avg_signal_strength,
             ROUND(AVG(T02.avg_temperature), 2)      AS avg_temperature,
-            ROUND(AVG(T02.efficiency_score), 2) AS avg_efficiency,
+            ROUND(AVG(T02.efficiency_score), 2)     AS avg_efficiency,
             
             ROUND(SUM(T02.energy_consumption) / 1000, 2)     AS total_energy_kwh,
             
@@ -93,6 +94,7 @@ async def db_get_daily_summary(
     if row is None:
         return None
 
+    # return results
     return {
         "date": str(summary_date),
         "avg_power": row["avg_power"],
@@ -108,14 +110,15 @@ async def db_get_daily_summary(
 
 def _get_alerts_where_clause(
         after: datetime,
-        efficiency_threshold: Optional[float] = None,
-        std_threshold: Optional[float] = None,
+        efficiency_threshold: Optional[float | int] = None,
+        std_threshold: Optional[float | int] = None,
         std_name: Optional[str] = None,
-        operation_hours_threshold: Optional[float] = None
-) -> tuple[str, tuple[float | datetime]]:
+        operation_hours_threshold: Optional[float | int] = None
+) -> tuple[str, tuple[float | int | datetime]]:
     where_clause = ["timestamp > ?"]
     params = [after]
 
+    # prepare where clause
     if efficiency_threshold is not None:
         where_clause.append("efficiency_score < ?")
         params.append(efficiency_threshold)
@@ -145,20 +148,22 @@ def _get_alerts_sql(where_str: str) -> str:
     """
     return sql
 
-
+# define enum
 class _AlertMode(str, Enum):
     STD = "std"
     EFFICIENCY = "efficiency"
     OPERATION_HOURS = "operation_hours"
 
+# define gerneric func for many actions
 def _alert_fetcher(mode: _AlertMode, std_name: Optional[str] = None):
     async def fetcher(
-            threshold: float,
+            threshold: float | int,
             after: Optional[datetime],
             db: DatabaseManager,
     ) -> list[AnalyticsRead] | list[Never]:
         after = after or datetime.now(timezone.utc) - timedelta(hours=1)
 
+        # geht the right arguments for the where clause functions
         kwargs = {
             _AlertMode.STD: dict(std_threshold=threshold, std_name=std_name),
             _AlertMode.EFFICIENCY: dict(efficiency_threshold=threshold),
@@ -172,7 +177,7 @@ def _alert_fetcher(mode: _AlertMode, std_name: Optional[str] = None):
 
     return fetcher
 
-
+# define many alerts funcs
 db_alerts_efficiency = _alert_fetcher(_AlertMode.EFFICIENCY)
 db_alerts_operation_hours = _alert_fetcher(_AlertMode.OPERATION_HOURS)
 db_alerts_std_power = _alert_fetcher(_AlertMode.STD, "std_power")
@@ -182,6 +187,7 @@ db_alerts_std_signal_strength = _alert_fetcher(_AlertMode.STD, "std_signal_stren
 db_alerts_std_temperature = _alert_fetcher(_AlertMode.STD, "std_temperature")
 
 
+# same as above, generic func for many uses
 def _ranking_fetcher(column: str):
     async def fetcher(
             after: Optional[datetime],

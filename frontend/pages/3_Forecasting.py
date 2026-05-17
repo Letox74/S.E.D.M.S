@@ -56,7 +56,7 @@ for i, m_name in enumerate(model_names):
             st.markdown(f"**Model: {m_name}**")
             st.code(f"Version: {current_ver if current_ver else "N/A"}")  # could be an empty string
 
-            # Nur die aktuellsten Metriken zeigen
+            # only show the mae and r2 score a metric
             if m_data.get("history"):
                 metrics = m_data["history"][0].get("metrics", {})
                 for metric_name, value in metrics.items():
@@ -112,6 +112,7 @@ def retraining_section() -> None:
                     st.rerun(scope="fragment")  # rerun to get into the retraining state
 
                 else:
+                    # if the api sends a error back
                     st.session_state.retraining_sucess = False
                     st.session_state.api_ml_error_detail = response.data["detail"]
                     st.rerun(scope="fragment")
@@ -132,8 +133,8 @@ with st.container(border=True):
 
         with p_col1:
             dev_options = {"All Devices": None}
-            for d in devices:
-                dev_options[f"{d["name"]} ({d["location"]})"] = d["id"]
+            for device in devices:
+                dev_options[f"{device["name"]} ({device["location"]})"] = device["id"]
 
             selected_dev = st.selectbox("Target Device (Optional)", options=list(dev_options.keys()))
             horizon = st.number_input("Prediction Horizon (Minutes)",

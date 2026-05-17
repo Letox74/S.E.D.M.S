@@ -14,7 +14,7 @@ from core.config import settings
 def get_api_client() -> APIClient:
     return create_api_instance()
 
-api_client = get_api_client()
+api_client = get_api_client()  # get the client for request in the pages
 
 
 def check_for_password_verification(main_page: bool = False) -> None:
@@ -43,17 +43,19 @@ def check_for_password_verification(main_page: bool = False) -> None:
             st.stop()
 
 
-def _calc_delta(prediction, actual_avg) -> float:
+def _calc_delta(prediction, actual_avg) -> float | int:
     if actual_avg == 0: return 0.0
     return ((prediction - actual_avg) / actual_avg) * 100
 
 
-def _get_historical_avg_for_timeslot(device_id: Optional[str], horizon_minutes: int) -> float:
+def _get_historical_avg_for_timeslot(device_id: Optional[str], horizon_minutes: int) -> float | int:
+    # prepare times and datetimes
     now = datetime.now(timezone.utc)
     start_time = now.time()
     end_time = (now + timedelta(minutes=horizon_minutes)).time()
     seven_days_ago = now - timedelta(days=7)
 
+    # get the analytics for the last 7 days
     response = api_client.sync_request("GET", "/analytics/history",
                                        params={"device_id": device_id, "start_datetime": seven_days_ago})
 
@@ -63,6 +65,7 @@ def _get_historical_avg_for_timeslot(device_id: Optional[str], horizon_minutes: 
     df_hist = pd.DataFrame(response.data)
     df_hist["timestamp"] = pd.to_datetime(df_hist["timestamp"], errors="coerce", yearfirst=True)
 
+    # mask the df
     mask = (df_hist["timestamp"].dt.time >= start_time) & (df_hist["timestamp"].dt.time <= end_time)
     data = df_hist.loc[mask]
 
@@ -74,8 +77,8 @@ def display_prediction_card(data: Any, users_tz) -> None:
     confidence = data["confidence"]
     avg_value = _get_historical_avg_for_timeslot(data["device_id"], data["prediction_horizon_minutes"])
 
-    dt_object = datetime.fromisoformat(data["timestamp"]) if not isinstance(data["timestamp"], datetime) else data[
-        "timestamp"]
+    dt_object = datetime.fromisoformat(data["timestamp"]) \
+        if not isinstance(data["timestamp"], datetime) else data["timestamp"]
 
     if dt_object.tzinfo is None:
         dt_object = pytz.utc.localize(dt_object)
@@ -83,6 +86,7 @@ def display_prediction_card(data: Any, users_tz) -> None:
     start_time = dt_object.astimezone(users_tz)
     end_time = start_time + timedelta(minutes=data["prediction_horizon_minutes"])
 
+    # use minutes or hours depending on the amount of the prediction horizon
     if data["prediction_horizon_minutes"] / 60 > 1:
         horizon_value = data["prediction_horizon_minutes"] / 60
         horizon_metric = "hours"
@@ -93,6 +97,7 @@ def display_prediction_card(data: Any, users_tz) -> None:
 
     delta = _calc_delta(data["predicted_load"], avg_value)
 
+    # show everything in a metric
     st.metric(
         label=f"Predicted Load",
         value=f"{prediction_value:.2f} Wh",
@@ -106,3 +111,14 @@ def display_prediction_card(data: Any, users_tz) -> None:
     conf_color = "green" if confidence > 80 else "orange" if confidence > 50 else "red"
     st.markdown(f"**Confidence Score:** :{conf_color}[{confidence:.0f}%]")
     st.progress(confidence / 100)
+
+
+# func to shift all timestamps in the users tz
+def localize_tz(df: pd.DataFrame, user_tz) -> pd.DataFrame:
+    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce", yearfirst=True)
+    if df["timestamp"].dt.tz is None:
+        df["timestamp"] = df["timestamp"].dt.tz_localize("UTC")
+
+    df["timestamp"] = df["timestamp"].dt.tz_convert(user_tz)
+
+    return df

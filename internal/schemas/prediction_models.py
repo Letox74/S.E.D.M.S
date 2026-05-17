@@ -10,29 +10,29 @@ class PredictionBase(BaseModel):
         description="The generated uuid for the Device, where the prediction data is from"
     )
 
-    predicted_load: float = Field(
+    predicted_load: float | int = Field(
         default=...,
-        description="The predicted power consumption in Watts over the next X hours",
+        description="The predicted power consumption in Watts over the next X hours / minutes",
         ge=0
     )
 
-    actual_load: Optional[float] = Field(
+    actual_load: Optional[float | int] = Field(
         default=None,
         description="The actual power consumption in Watts",
         ge=0
     )
 
-    prediction_error: Optional[float] = Field(  # calculated by actual_load - predicted_load
+    prediction_error: Optional[float | int] = Field(  # calculated by actual_load - predicted_load
         default=None,
         description="How wrong the model was"
     )
 
     is_anomaly: bool = Field(
         default=...,
-        description="If it the prediction is anomaly, by a Threshold",
+        description="If the prediction is anomaly, by a Threshold",
     )
 
-    confidence: float = Field(
+    confidence: float | int = Field(
         default=...,
         description="How confident the model is",
         ge=0,

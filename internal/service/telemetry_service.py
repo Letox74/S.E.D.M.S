@@ -2,7 +2,7 @@ import asyncio
 import logging
 import time
 from datetime import datetime, timezone, timedelta
-from typing import Never, Optional
+from typing import Optional
 
 from core.config import settings
 from database.connection import DatabaseManager
@@ -24,7 +24,7 @@ error_logger = logging.getLogger("Error")
 
 # logic for the API Endpoints
 async def _validate_cooldown(device_id: str, db: DatabaseManager) -> str | None:
-    COOLDOWN = timedelta(minutes=settings.api.telemetry_limit)
+    COOLDOWN = timedelta(minutes=settings.api.telemetry_limit)  # cooldown till next ingestion
 
     latest_telemetry = await db_get_latest_telemetry(device_id, db)
     if not latest_telemetry:
@@ -71,7 +71,7 @@ async def db_get_telemetry_history(
         daterange: Optional[list[datetime]],
         limit: Optional[int],
         db: DatabaseManager
-) -> list[TelemetryRead] | list[Never]:
+) -> list[TelemetryRead]:
     return await db_get_history(device_id, daterange, limit, "telemetry", db)
 
 
@@ -79,7 +79,7 @@ async def db_get_telemetry_range(
         device_id: Optional[str],
         daterange: list[datetime],
         db: DatabaseManager
-) -> list[TelemetryRead] | list[Never]:
+) -> list[TelemetryRead]:
     return await db_get_range(device_id, daterange, "telemetry", db)
 
 
@@ -158,7 +158,7 @@ async def _complex_queries(where_clause: str) -> tuple[dict[str, str]] | tuple[d
 def _handle_results(
         results,
         mapping_dict: dict[str, tuple[str, str]]
-) -> dict[str, int | str | dict[str, float | str]] | dict[str, str]:
+) -> dict[str, int | str | dict[str, float | int | str]] | dict[str, str]:
     if results[0]["total_count"] == 0:
         return {"message": "No Telemetry data yet"}
 
@@ -197,8 +197,10 @@ async def db_get_telmetry_stats(
     # redefine types and format if daterange was set
     daterange = daterange or [None]
 
+    # prepare the where clause and the params
     where_clause = []
     params = []
+
     if daterange[0]:
         where_clause.append("timestamp BETWEEN ? AND ?")
         params.extend(daterange)
@@ -249,7 +251,7 @@ async def db_alerts_battery(threshold: float, after: Optional[datetime], db: Dat
 
 
 async def db_alerts_temperature(
-        threshold: float,
+        threshold: float | int,
         after: Optional[datetime],
         db: DatabaseManager
 ) -> list[TelemetryRead]:
@@ -273,7 +275,7 @@ async def db_alerts_temperature(
 
 # logic for the Backgroundtask (calculate analytics)
 async def get_last_24h(device_id: str, db: DatabaseManager) -> list[TelemetryRead]:
-    time = (datetime.now(timezone.utc) - timedelta(hours=24)).replace(microsecond=0)
+    time = datetime.now(timezone.utc) - timedelta(hours=24)
 
     sql = """
         SELECT * 

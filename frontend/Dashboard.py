@@ -1,6 +1,8 @@
 import sys
 from pathlib import Path
 
+from frontend.utils import localize_tz
+
 # append path to allow imports from other folders
 current_dir = str(Path(__file__).resolve().parent.parent)
 if current_dir not in sys.path:
@@ -11,6 +13,7 @@ from typing import Any
 
 import numpy as np
 import streamlit as st
+import pandas as pd
 
 from utils import check_for_password_verification, display_prediction_card, api_client
 from core.config import settings
@@ -132,6 +135,14 @@ st.divider()
 
 tab_batt, tab_temp = st.tabs(["Battery Alerts", "Temperature Alerts"])
 
+# create dataframes
+battery_df = pd.DataFrame(battery_alerts)
+temp_df = pd.DataFrame(temp_alerts)
+
+battery_df = localize_tz(battery_df, user_tz)
+temp_df = localize_tz(temp_df, user_tz)
+
+# battery alerts
 with tab_batt:
     count_col, unique_col = st.columns(2)
 
@@ -166,6 +177,7 @@ with tab_batt:
     else:
         st.success("All batteries are within normal range")
 
+# temperature alerts
 with tab_temp:
     count_col, unique_col = st.columns(2)
 
@@ -223,7 +235,7 @@ else:
                 st.markdown(f"**Model: {m_name}**")
                 st.code(f"Version: {current_ver if current_ver else "N/A"}")  # could be an empty string
 
-                # Nur die aktuellsten Metriken zeigen
+                # only show the mae and r2 score a metric
                 if m_data.get("history"):
                     metrics = m_data["history"][0].get("metrics", {})
                     for metric_name, value in metrics.items():

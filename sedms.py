@@ -12,7 +12,7 @@ async def async_main() -> None:
 
     args = parser.parse_args()
     if hasattr(args, "func"):
-        if inspect.iscoroutinefunction(args.func):
+        if inspect.iscoroutinefunction(args.func):  # if the default func is asynchronus
             await args.func(args)
         else:
             args.func(args)
@@ -24,4 +24,4 @@ async def async_main() -> None:
 def main() -> None:
     try:
         asyncio.run(async_main())
-    except KeyboardInterrupt: pass  # in cli/comamnds/run.py the KeyboardInterrupt error is passed to this function that it crashes
+    except KeyboardInterrupt: pass  # in cli/comamnds/run.py the KeyboardInterrupt error is passed up to this function when the error occurred

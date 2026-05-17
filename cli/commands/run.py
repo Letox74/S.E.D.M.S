@@ -12,7 +12,7 @@ from core.config import settings
 
 BASE_DIR = Path(__file__).parent.parent.parent.resolve()
 
-
+# custom error classes
 class VenvNotActiveError(Exception): pass
 
 class InvalidRateLimitFormat(Exception): pass
@@ -21,8 +21,9 @@ class SamePortError(Exception): pass
 
 
 def setup_run_cli(subparsers: argparse._SubParsersAction) -> None:
-    run_parser = subparsers.add_parser("run", help="Starts the API Server and the website")
+    run_parser = subparsers.add_parser("run", help="Starts the API Server and the website")  # define run parser
 
+    # add arguments for run
     run_parser.add_argument("--no-frontend", dest="frontend", action="store_false", help="Deactivate the frontend")
     run_parser.add_argument("--no-rate-limits", dest="rate_limits", action="store_false",
                             help="Deactivate the rate limits for the API")
@@ -33,17 +34,20 @@ def setup_run_cli(subparsers: argparse._SubParsersAction) -> None:
     run_parser.add_argument("--frontend-port", type=int, help="Set the frontend Port")
     run_parser.add_argument("--dev", action="store_true", help="Starts Uvicorn with --reload")
 
+    # set the func to handle the input
     run_parser.set_defaults(func=_start_severs)
 
 
 @bypass_error_handling
 def _validate_input(args) -> None:
+    # check for invalid rate limit format
     if args.rate_limit:
         pattern = r"^\d+\s*(?:per|\/)\s*\d*\s*(?:second|minute|hour|day)s?$"
         if not re.match(pattern, args.rate_limit.strip()):
             raise InvalidRateLimitFormat(f"Invalid rate limit format: '{args.rate_limit}'. "
                                          "Please use a valid format such as '5 per minute', '100/day', or '10 per 2 hours'")
 
+    # check if the ports are the same
     api_port = args.api_port or settings.api.port
     frontend_port = args.frontend_port or settings.frontend.port
 
@@ -52,6 +56,7 @@ def _validate_input(args) -> None:
 
 
 def _insert_input_into_settings(args) -> None:
+    # set everything into the settings class if it was set
     if args.rate_limits is False:
         settings.api.activate_rate_limits = False
 
@@ -73,6 +78,7 @@ def _insert_input_into_settings(args) -> None:
 
 @bypass_error_handling
 def _check_venv() -> None:
+    # in a docker container there is no .venv (most of the times)
     if Path("/.dockerenv").exists():
         return
 
@@ -103,6 +109,7 @@ def _get_uvicorn_cmd(args) -> list[str]:
 
 @handle_error()
 def _start_severs(args) -> None:
+    # validation
     _validate_input(args)
     _insert_input_into_settings(args)
     _check_venv()
@@ -114,7 +121,7 @@ def _start_severs(args) -> None:
     if args.frontend:
         streamlit_process = subprocess.Popen(
             _get_streamlit_cmd(args),
-            cwd=BASE_DIR,
+            cwd=BASE_DIR,  # in the folder directory of the project
             stdout=None,
             stderr=None
         )
@@ -133,6 +140,7 @@ def _start_severs(args) -> None:
 
     try:
         while True:
+            # check if a server crashed
             if args.frontend:
                 if streamlit_process.poll() is not None:
                     print_to_console("bold red", "Streamlit unexpectedly crashed")
@@ -155,7 +163,7 @@ def _start_severs(args) -> None:
         time.sleep(1)
         for process in processes:
             if process.poll() is None:
-                process.kill()
+                process.kill()  # if terminate dind't work (fallback)
 
         print_to_console("green",
                          f"{"All Server processes" if args.frontend else "The Server process"} stopped successfully")

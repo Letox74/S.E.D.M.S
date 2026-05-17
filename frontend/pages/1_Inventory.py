@@ -78,7 +78,7 @@ with tab_list:
         )
 
         # csv export
-        _, col_exp = st.columns([6, 1])
+        _, col_exp = st.columns([6, 1])  # that the export button is on the right of the screen (not on mobile)
         with col_exp:
             csv = df.to_csv(index=False).encode("utf-8")
             st.download_button(
@@ -175,12 +175,14 @@ with tab_register:
         col_f1, col_f2 = st.columns(2)
 
         with col_f1:
+            # 'normal' inputs like name etc
             name = st.text_input("Device Name", max_chars=20)
             dev_type = st.selectbox("Type", DeviceTypes.values())
             loc = st.text_input("Location", max_chars=30)
             desc = st.text_area("Description", max_chars=200, height=80)
 
         with col_f2:
+            # other inputs like firmware etc
             firmware = st.text_input("Firmware Version", max_chars=32)
             status = st.selectbox("Status", DeviceStatus.values(), index=DeviceStatus.values().index("online"))
             active = st.toggle(

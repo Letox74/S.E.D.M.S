@@ -3,7 +3,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta, date
 from pathlib import Path
-from typing import Never, Optional
+from typing import Optional
 
 import lightgbm as lgbm
 import numpy as np
@@ -103,7 +103,7 @@ async def _update_prediction_errors(db: DatabaseManager) -> None:
         FROM CalculatedPredictions AS T03
         WHERE predictions.id = T03.id;
     """
-    updated_rows = await db.execute_transaction(sql)
+    updated_rows = await db.execute_transaction(sql)  # gives the number of updated rows back
 
     if updated_rows >= 1:
         ml_logger.info(f"Updated {updated_rows} rows")
@@ -116,7 +116,7 @@ def _calculate_the_prediction(
         lgbm2_horizon: int,
         horizon_minutes: int,
         data: pd.DataFrame
-) -> float:
+) -> float | int:
     prediction1 = lgbm1.predict(data)[0]
     prediction2 = lgbm2.predict(data)[0]
 
@@ -125,10 +125,10 @@ def _calculate_the_prediction(
     dist_b = abs(lgbm2_horizon - horizon_minutes)
     total_dist = lgbm2_horizon - lgbm1_horizon
 
-    return (prediction1 * (dist_b / total_dist)) + (prediction2 * (dist_a / total_dist))
+    return (prediction1 * (dist_b / total_dist)) + (prediction2 * (dist_a / total_dist))  # give it a wheight based on how far the model is away from the horizon
 
 
-def _calculate_confidence(iso_forest: Pipeline, data: pd.DataFrame) -> tuple[bool, float]:
+def _calculate_confidence(iso_forest: Pipeline, data: pd.DataFrame) -> tuple[bool, float | int]:
     score = iso_forest.decision_function(data)[0]
     anomaly = iso_forest.predict(data)[0]
 
@@ -156,7 +156,7 @@ async def get_prediction(
 
     models = _get_prediction_models(horizon_minutes)
     anomaly, confidence = _calculate_confidence(models.iso_forest, prediction_data)
-    if len(models.lgbm_models) == 2:
+    if len(models.lgbm_models) == 1:  # if one model perfectly fits the horizon
         prediction = models.lgbm_models[0].model.predict(prediction_data)[0]
         version = _get_model_version(models.lgbm_models[0].name)
 
@@ -200,10 +200,7 @@ async def get_model_metadata(
         return {
             name: {
                 "current_version": model_info["current_version"],
-                "history": [
-                    history for history in model_info["history"]
-                    if history["version"] == model_info["current_version"]
-                ]
+                "history": [model_info["history"][0]]  # latst history is always and index 0
             }
             for name, model_info in data.items()
         }
@@ -213,7 +210,7 @@ async def get_model_metadata(
             "current_version": model_info["current_version"],
             "history": [
                 history for history in model_info["history"]
-                if (not version or history["version"] == version)
+                if (not version or history["version"] == version)  # check for the right version
                    and (not after or datetime.strptime(history["date"], "%Y-%m-%d").date() > after)
             ]
         }
@@ -221,11 +218,11 @@ async def get_model_metadata(
     }
 
 
-async def clear_model_metadata(before: date):
+async def clear_model_metadata(before: date) -> None:
     with open(METADATA_PATH, "r+", encoding="utf-8") as metadata:
         data = json.load(metadata)
         current_date = date.today().strftime("%Y-%m-%d")
-        data["last_updated"] = current_date
+        data["last_updated"] = current_date  # set it to the current date
 
         for model_name in data["models"]:
             data["models"][model_name]["history"] = [
@@ -247,7 +244,7 @@ async def db_get_predictions_history(
         daterange: Optional[list[datetime]],
         limit: Optional[int],
         db: DatabaseManager
-) -> list[PredictionRead] | list[Never]:
+) -> list[PredictionRead]:
     return await db_get_history(device_id, daterange, limit, "predictions", db)
 
 
@@ -255,7 +252,7 @@ async def db_get_predictions_range(
         device_id: Optional[str],
         daterange: list[datetime],
         db: DatabaseManager
-) -> list[PredictionRead] | list[Never]:
+) -> list[PredictionRead]:
     return await db_get_range(device_id, daterange, "predictions", db)
 
 
