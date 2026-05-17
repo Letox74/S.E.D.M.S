@@ -135,6 +135,7 @@ class Config:
 
     version: str
     base_url: str
+    host: str
 
     @classmethod
     def from_toml(cls) -> Config:
@@ -145,7 +146,8 @@ class Config:
             FrontendConfig.from_toml(),
             OtherConfig.from_toml(),
             "0.1.0",
-            os.getenv("BASE_URL")
+            os.getenv("BASE_URL"),
+            os.getenv("HOST")
         )
 
 

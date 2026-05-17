@@ -22,4 +22,6 @@ async def async_main() -> None:
 
 
 def main() -> None:
-    asyncio.run(async_main())
+    try:
+        asyncio.run(async_main())
+    except KeyboardInterrupt: pass  # in cli/comamnds/run.py the KeyboardInterrupt error is passed to this function that it crashes

@@ -8,11 +8,11 @@ from rich.prompt import Confirm
 console = Console()
 
 @overload
-def print_to_console(*, custom: str, print_whitespace: bool = False) -> None: ...
+def print_to_console(*, custom: str, justify: Optional[str] = None, print_whitespace: bool = False) -> None: ...
 
 
 @overload
-def print_to_console(color: str, message: str, print_whitespace: bool = False) -> None: ...
+def print_to_console(color: str, message: str, justify: Optional[str] = None, print_whitespace: bool = False) -> None: ...
 
 
 def print_to_console(
@@ -20,16 +20,17 @@ def print_to_console(
         message: Optional[str] = None,
         *,
         custom: Optional[str] = None,
+        justify: Optional[str] = None,
         print_whitespace: bool = False
 ) -> None:
     if print_whitespace:
         console.print()
 
     if custom is not None:
-        console.print(custom)
+        console.print(custom, justify=justify)
 
     else:
-        console.print(f"[{color}]{message}[/{color}]")
+        console.print(f"[{color}]{message}[/{color}]", justify=justify)
 
 
 def print_panel(
@@ -41,6 +42,7 @@ def print_panel(
         expand: bool = False,
         width: Optional[int] = None,
         height: Optional[int] = None,
+        justify: Optional[str] = None,
         print_whitespace: bool = False
 ) -> None:
     if print_whitespace:
@@ -57,11 +59,17 @@ def print_panel(
             expand=expand,
             width=width,
             height=height
-        )
+        ),
+        justify=justify
     )
 
 
-def confirm(question: str, default: bool = True, color: str = "white", print_whitespace: bool = False) -> bool:
+def confirm(
+        question: str,
+        default: bool = True,
+        color: str = "white",
+        print_whitespace: bool = False
+) -> bool:
     if print_whitespace:
         console.print()
 
